@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 use serde_json::json;
 
+use crate::economics;
 use crate::http::{Request, Response};
 use crate::insight;
 use crate::model::*;
@@ -18,6 +19,7 @@ struct State<'a> {
     workloads: Vec<insight::Workload>,
     alerts: Vec<insight::Alert>,
     health: insight::Health,
+    economics: economics::Summary,
     today: String,
 }
 
@@ -39,6 +41,7 @@ pub fn route(store: &Mutex<Store>, req: Request) -> Response {
                 tasks: &s.tasks,
                 alerts: insight::alerts(&s, &workloads),
                 health: insight::health(&s, &workloads),
+                economics: economics::summary(&s),
                 workloads,
                 today: crate::date::from_today(0),
             };
@@ -89,13 +92,14 @@ pub fn route(store: &Mutex<Store>, req: Request) -> Response {
             Err(_) => bad("任务 id 非法"),
         },
 
-        ("GET", ["api", "tasks", id, "suggest"]) => {
+        // 单任务决策矩阵：各候选方案的成本、工期、净现值、投资回报率
+        ("GET", ["api", "tasks", id, "decision"]) => {
             let Ok(id) = id.parse::<u32>() else {
                 return bad("任务 id 非法");
             };
             let s = store.lock().unwrap();
             match s.task(id) {
-                Some(t) => ok(&insight::suggest(&s, t)),
+                Some(t) => ok(&economics::decide(&s, t)),
                 None => not_found("任务不存在"),
             }
         }

@@ -1,9 +1,10 @@
 //! Moonlight —— 企业研发团队内部管理工具
-//! 核心逻辑（负载统计 / 智能派工 / 风险预警 / 健康度）全部由 Rust 实现，
-//! 交互界面为内嵌的单页 Web 应用，启动后浏览器访问即可。
+//! 工程管理（进度 / 资源 / 风险）与经济决策（成本 / 净现值 / 投资组合）
+//! 两层核心逻辑全部由 Rust 实现，交互界面为内嵌的单页 Web 应用。
 
 mod api;
 mod date;
+mod economics;
 mod http;
 mod insight;
 mod model;
