@@ -34,7 +34,7 @@ impl Store {
                 let mut s = serde_json::from_str::<Store>(&text)
                     .map_err(|e| format!("{} 格式损坏（{e}），原文件已保留", path.display()))?;
                 s.path = path;
-                // 兼容旧数据：即使 next_* 缺失或落后，也不会产生重复 id。
+                // 兼容没有 next_* 字段或计数器落后的旧数据，避免新增记录撞号。
                 s.next_member_id = s
                     .next_member_id
                     .max(s.members.iter().map(|m| m.id).max().unwrap_or(0));
@@ -115,6 +115,7 @@ impl Store {
 
     pub fn add_task(&mut self, input: NewTask) -> Task {
         self.next_task_id += 1;
+        let value = input.value.max(0.0);
         let t = Task {
             id: self.next_task_id,
             title: input.title,
@@ -123,8 +124,13 @@ impl Store {
             status: Status::Todo,
             assignee: input.assignee.filter(|id| self.member(*id).is_some()),
             estimate: input.estimate.max(0.5),
-            business_value: input.business_value.max(0.0),
             due: input.due,
+            value,
+            // 未显式登记延期损失时，按收益与优先级推导一个基准值
+            delay_cost_per_day: input
+                .delay_cost_per_day
+                .filter(|v| *v > 0.0)
+                .unwrap_or_else(|| crate::economics::derive_delay_cost(value, input.priority)),
         };
         self.tasks.push(t.clone());
         self.save();
@@ -153,11 +159,14 @@ impl Store {
         if let Some(v) = patch.estimate {
             t.estimate = v.max(0.5);
         }
-        if let Some(v) = patch.business_value {
-            t.business_value = v.max(0.0);
-        }
         if let Some(v) = patch.due {
             t.due = v;
+        }
+        if let Some(v) = patch.value {
+            t.value = v.max(0.0);
+        }
+        if let Some(v) = patch.delay_cost_per_day {
+            t.delay_cost_per_day = v.max(0.0);
         }
         if let Some(v) = patch.assignee {
             if assignee_valid {
@@ -181,12 +190,14 @@ impl Store {
 
     /// 首次启动时写入一组演示数据，避免打开界面是一片空白
     fn seed(&mut self) {
+        // 姓名、学科、周产能、人力成本（元/小时，全成本口径：含社保公积金与管理分摊）
+        // 团队里没有运维学科，运维类任务只能跨学科承接，用于演示能力缺口的代价
         let members = [
-            ("林洲", Role::Backend, 32.0, 120.0),
-            ("周舟", Role::Frontend, 30.0, 110.0),
-            ("陆晚", Role::Qa, 28.0, 90.0),
-            ("何言", Role::Backend, 24.0, 100.0),
-            ("苏念", Role::Product, 20.0, 130.0),
+            ("林洲", Role::Backend, 32.0, 520.0),
+            ("周舟", Role::Frontend, 30.0, 430.0),
+            ("陆晚", Role::Qa, 28.0, 330.0),
+            ("何言", Role::Backend, 24.0, 380.0),
+            ("苏念", Role::Product, 20.0, 450.0),
         ];
         for (name, role, hours, cost) in members {
             self.add_member(NewMember {
@@ -197,80 +208,138 @@ impl Store {
             });
         }
 
+        // 标题、学科、优先级、工时、截止日偏移、负责人、预期业务收益（元，季度可量化口径）
         let tasks = [
             (
                 "鉴权网关灰度放量",
                 Role::Backend,
                 Priority::P0,
                 12.0,
-                7200.0,
                 2,
                 Some(1),
+                45_000.0,
             ),
             (
                 "工时看板前端重构",
                 Role::Frontend,
                 Priority::P1,
                 16.0,
-                4800.0,
                 6,
                 Some(2),
+                26_000.0,
             ),
             (
                 "发布流水线回归用例",
                 Role::Qa,
                 Priority::P1,
                 10.0,
-                3200.0,
                 4,
                 Some(3),
+                20_000.0,
             ),
             (
                 "消息推送重复投递修复",
                 Role::Backend,
                 Priority::P0,
                 8.0,
-                9000.0,
                 1,
                 None,
+                32_000.0,
             ),
             (
                 "季度需求池梳理",
                 Role::Product,
                 Priority::P2,
                 6.0,
-                1800.0,
                 12,
                 Some(5),
+                9_000.0,
             ),
             (
                 "数据库慢查询治理",
                 Role::Backend,
                 Priority::P1,
                 14.0,
-                5200.0,
                 -1,
                 Some(4),
+                28_000.0,
             ),
+            // 测试同学跨学科接前端活，用于演示学科距离带来的工时与成本上浮
             (
                 "移动端埋点补齐",
                 Role::Frontend,
                 Priority::P2,
                 9.0,
-                2300.0,
                 9,
+                Some(3),
+                12_000.0,
+            ),
+            (
+                "灰度配置中心接入",
+                Role::Ops,
+                Priority::P1,
+                10.0,
+                8,
                 None,
+                16_000.0,
+            ),
+            (
+                "用户增长看板取数",
+                Role::Backend,
+                Priority::P2,
+                12.0,
+                15,
+                None,
+                10_000.0,
+            ),
+            // 投入远大于收益，用于演示净现值为负时的砍需求决策
+            (
+                "老旧接口文档整理",
+                Role::Product,
+                Priority::P2,
+                20.0,
+                20,
+                None,
+                2_000.0,
+            ),
+            (
+                "客服工单导出优化",
+                Role::Frontend,
+                Priority::P1,
+                11.0,
+                5,
+                None,
+                15_000.0,
+            ),
+            (
+                "压测环境扩容",
+                Role::Ops,
+                Priority::P1,
+                8.0,
+                7,
+                None,
+                11_000.0,
+            ),
+            (
+                "埋点数据质量校验",
+                Role::Qa,
+                Priority::P2,
+                10.0,
+                18,
+                None,
+                7_000.0,
             ),
         ];
-        for (title, skill, priority, estimate, value, due_offset, assignee) in tasks {
+        for (title, skill, priority, estimate, due_offset, assignee, value) in tasks {
             self.add_task(NewTask {
                 title: title.to_string(),
                 skill,
                 priority,
                 estimate,
-                business_value: value,
                 due: date::from_today(due_offset),
                 assignee,
+                value,
+                delay_cost_per_day: None,
             });
         }
         // 让演示数据的状态更有层次
@@ -308,9 +377,10 @@ mod tests {
             skill: Role::Backend,
             priority: Priority::P1,
             estimate: 4.0,
-            business_value: 1000.0,
             due: "2026-12-01".into(),
             assignee: Some(m.id),
+            value: 10_000.0,
+            delay_cost_per_day: None,
         });
         assert!(s.remove_member(m.id));
         assert_eq!(s.task(t.id).unwrap().assignee, None);
@@ -324,9 +394,10 @@ mod tests {
             skill: Role::Qa,
             priority: Priority::P2,
             estimate: 4.0,
-            business_value: 1000.0,
             due: "2026-12-01".into(),
             assignee: None,
+            value: 10_000.0,
+            delay_cost_per_day: None,
         });
         let patch = TaskPatch {
             status: Some(Status::Doing),
@@ -346,24 +417,55 @@ mod tests {
             skill: Role::Ops,
             priority: Priority::P1,
             estimate: 4.0,
-            business_value: 1000.0,
             due: "2026-12-01".into(),
             assignee: Some(999),
+            value: 10_000.0,
+            delay_cost_per_day: None,
         });
         assert_eq!(t.assignee, None);
     }
 
-    #[test]
-    fn 损坏的数据文件不应被覆盖() {
-        let path = std::env::temp_dir().join(format!(
-            "moonlight-corrupt-{}-{}.json",
+    fn 临时文件(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "moonlight-{name}-{}-{}.json",
             std::process::id(),
             std::thread::current().name().unwrap_or("test")
-        ));
+        ))
+    }
+
+    #[test]
+    fn 损坏的数据文件不应被覆盖() {
+        let path = 临时文件("corrupt");
         fs::write(&path, "{broken-json").unwrap();
+
         let result = Store::load(&path);
+
         assert!(result.is_err());
         assert_eq!(fs::read_to_string(&path).unwrap(), "{broken-json");
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn 加载旧数据后应修复编号计数器() {
+        let path = 临时文件("legacy");
+        fs::write(
+            &path,
+            r#"{
+              "members": [{"id": 41, "name": "旧成员", "role": "backend", "weekly_hours": 40, "hourly_cost": 100}],
+              "tasks": []
+            }"#,
+        )
+        .unwrap();
+
+        let mut store = Store::load(&path).unwrap();
+        let created = store.add_member(NewMember {
+            name: "新成员".into(),
+            role: Role::Qa,
+            weekly_hours: 40.0,
+            hourly_cost: 100.0,
+        });
+
+        assert_eq!(created.id, 42);
         fs::remove_file(path).unwrap();
     }
 }

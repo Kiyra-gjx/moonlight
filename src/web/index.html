@@ -8,39 +8,45 @@
 /* ---------- 基础样式 ---------- */
 :root{
   --bg:#0e1116; --panel:#161b22; --line:#232a35; --text:#d7dee8; --muted:#7d8896;
-  --accent:#7c9cff; --danger:#ff6b6b; --warn:#f0b64c; --ok:#4ec98f;
+  --accent:#7c9cff; --danger:#ff6b6b; --warn:#f0b64c; --ok:#4ec98f; --gold:#e3c07b;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 input,select{font:inherit;color:var(--text);background:#0f141b;border:1px solid var(--line);
-  border-radius:6px;padding:6px 8px;outline:none}
+  border-radius:6px;padding:6px 8px;outline:none;width:100%}
 input:focus,select:focus{border-color:var(--accent)}
+table{border-collapse:collapse;width:100%}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---------- 顶栏 ---------- */
-header{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);
+header{display:flex;align-items:center;gap:18px;padding:12px 20px;border-bottom:1px solid var(--line);
   background:var(--panel);position:sticky;top:0;z-index:10}
 .logo{font-size:17px;font-weight:600;letter-spacing:.5px}
 .logo span{color:var(--accent)}
 .sub{color:var(--muted);font-size:12px}
 .spacer{flex:1}
-.btn{border:1px solid var(--line);border-radius:6px;padding:6px 14px;transition:.15s}
+.btn{border:1px solid var(--line);border-radius:6px;padding:6px 14px;transition:.15s;width:auto}
 .btn:hover{border-color:var(--accent);color:var(--accent)}
 .btn.primary{background:var(--accent);color:#0e1116;border-color:var(--accent);font-weight:600}
 .btn.primary:hover{opacity:.85;color:#0e1116}
 
-/* 健康度指示 */
 .health{display:flex;align-items:center;gap:10px}
-.ring{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px}
-.health .meta{font-size:12px;color:var(--muted);max-width:190px}
+.ring{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.health .meta{font-size:12px;color:var(--muted);max-width:200px}
+/* 顶栏经济指标 */
+.kpi{display:flex;gap:16px;padding-left:18px;border-left:1px solid var(--line)}
+.kpi div{font-size:12px;color:var(--muted);white-space:nowrap}
+.kpi b{display:block;font-size:15px;color:var(--text)}
+.kpi b.pos{color:var(--ok)} .kpi b.neg{color:var(--danger)}
 
 /* ---------- 布局 ---------- */
-main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;align-items:start}
+main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;align-items:start}
+.side{display:grid;gap:12px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
-.panel h2{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:10px;
-  text-transform:uppercase;letter-spacing:1px}
+.panel h2{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:10px;letter-spacing:1px}
+.panel h2 em{font-style:normal;color:#4b5665;margin-left:6px;letter-spacing:0}
 
 /* ---------- 成员负载 ---------- */
 .member{padding:8px 0;border-bottom:1px dashed var(--line)}
@@ -51,12 +57,12 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
 .bar{height:6px;background:#0f141b;border-radius:3px;margin-top:6px;overflow:hidden}
 .bar i{display:block;height:100%;border-radius:3px;transition:width .3s}
 .member .num{font-size:11px;color:var(--muted);margin-top:3px}
-.del{color:var(--muted);font-size:12px}
+.del{color:var(--muted);font-size:12px;width:auto}
 .del:hover{color:var(--danger)}
 
 /* ---------- 看板 ---------- */
 .board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:260px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:280px}
 .col.over{border-color:var(--accent);background:#1a2130}
 .col h3{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
 .card{background:#0f141b;border:1px solid var(--line);border-left-width:3px;border-radius:8px;
@@ -67,11 +73,27 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
 .card.p2{border-left-color:#48566b}
 .card .title{font-weight:600;margin-bottom:5px;word-break:break-all}
 .card .meta{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:11px;color:var(--muted)}
+.card .econ{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;margin-top:5px;color:var(--gold)}
 .card .foot{display:flex;gap:6px;align-items:center;margin-top:7px}
 .card select{flex:1;font-size:12px;padding:3px 5px}
+.status-select{display:none}
 .overdue{color:var(--danger);font-weight:600}
 .soon{color:var(--warn)}
-.hint{font-size:11px;color:var(--accent);margin-top:6px;line-height:1.5}
+
+/* ---------- 经济决策面板 ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.stat{background:#0f141b;border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.stat span{display:block;font-size:11px;color:var(--muted)}
+.stat b{font-size:15px}
+.pos{color:var(--ok)} .neg{color:var(--danger)} .gold{color:var(--gold)}
+.pf{font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line);display:flex;gap:6px;align-items:baseline}
+.pf:last-child{border-bottom:none}
+.pf .mark{flex:none;width:14px}
+.pf .t{flex:1}
+.pf .r{color:var(--muted);font-size:11px}
+.pf.off{opacity:.55}
+.capbar{height:8px;background:#0f141b;border-radius:4px;overflow:hidden;margin:4px 0 10px}
+.capbar i{display:block;height:100%;background:var(--accent)}
 
 /* ---------- 预警 ---------- */
 .alert{border-left:3px solid var(--line);padding:5px 0 5px 8px;margin-bottom:7px;font-size:12.5px}
@@ -79,38 +101,64 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
 .alert.warn{border-color:var(--warn)}
 .alert.info{border-color:var(--accent);color:var(--muted)}
 .empty{color:var(--muted);font-size:12px;padding:6px 0}
-.economics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.metric{background:#0f141b;border:1px solid var(--line);border-radius:7px;padding:8px}
-.metric b{display:block;color:var(--accent);font-size:16px}
-.metric span{font-size:11px;color:var(--muted)}
-.status-select{display:none}
 
 /* ---------- 表单与弹窗 ---------- */
 .form{display:grid;gap:7px;margin-top:10px}
 .form .two{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:20}
+.form label{font-size:11px;color:var(--muted)}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:20;padding:20px}
 .mask.show{display:grid}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;width:380px}
-.modal h3{margin-bottom:12px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;width:400px;max-height:90vh;overflow:auto}
+.modal.wide{width:820px}
+.modal h3{margin-bottom:4px}
+.modal .desc{font-size:12px;color:var(--muted);margin-bottom:12px}
 .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+/* 决策矩阵 */
+.matrix{font-size:12.5px}
+.matrix th{text-align:right;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.matrix th:first-child,.matrix td:first-child{text-align:left}
+.matrix td{text-align:right;padding:7px 8px;border-bottom:1px solid #1c222c;white-space:nowrap}
+.matrix tr.best{background:#16241d}
+.matrix tr.cheap td:first-child::after{content:'成本最低';font-size:10px;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:6px}
+.matrix tr.best td:first-child::before{content:'推荐';font-size:10px;color:#0e1116;background:var(--ok);
+  border-radius:3px;padding:0 4px;margin-right:6px}
+.matrix tbody tr:hover{background:#1a2130;cursor:pointer}
+.matrix tr.bad{opacity:.45}
+.matrix tr.bad td:first-child::after{content:'产能不可行';font-size:10px;color:var(--danger);
+  border:1px solid var(--danger);border-radius:3px;padding:0 4px;margin-left:6px}
+.rationale{margin-top:12px;padding:10px;background:#0f141b;border:1px solid var(--line);
+  border-left:3px solid var(--gold);border-radius:6px;font-size:12.5px;line-height:1.7}
+.rationale b{color:var(--gold)}
+
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1e2530;
-  border:1px solid var(--line);border-radius:8px;padding:8px 16px;opacity:0;transition:.25s;pointer-events:none}
+  border:1px solid var(--line);border-radius:8px;padding:8px 16px;opacity:0;transition:.25s;pointer-events:none;z-index:30}
 #toast.show{opacity:1}
 
-@media (max-width:1100px){
-  main{grid-template-columns:230px 1fr}
+@media (max-width:1400px){
+  header{flex-wrap:wrap}
+  .kpi{order:3;width:100%;padding:10px 0 0;border-left:0;border-top:1px solid var(--line)}
+  main{grid-template-columns:230px minmax(0,1fr)}
   main>section:last-child{grid-column:1/-1}
 }
 @media (max-width:760px){
-  header{position:static;flex-wrap:wrap}
+  html,body{max-width:100%;overflow-x:hidden}
+  header{position:static;gap:10px;padding:12px;width:100vw;max-width:100vw;overflow:hidden}
+  header>div:first-child{width:100%}
+  header .spacer{display:none}
+  #btnAuto,#btnNewTask{flex:0 0 calc(50% - 5px);width:calc(50% - 5px);min-width:0;
+    padding-inline:6px;white-space:nowrap}
   header .health{order:3;width:100%}
+  .kpi{order:4;display:grid;grid-template-columns:1fr 1fr;gap:8px}
   main{display:block;padding:10px}
   main>section{margin-bottom:10px}
   .board{grid-template-columns:1fr}
   .col{min-height:100px;margin-bottom:10px}
   .card{cursor:default}
   .status-select{display:block;width:100%;margin-top:7px}
-  .modal{width:min(92vw,380px)}
+  .modal,.modal.wide{width:min(96vw,820px);padding:14px}
+  .matrix{min-width:780px}
 }
 </style>
 </head>
@@ -125,24 +173,24 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
     <div class="ring" id="ring">--</div>
     <div class="meta" id="healthMeta"></div>
   </div>
+  <div class="kpi" id="kpi"></div>
   <div class="spacer"></div>
-  <button class="btn" id="btnAuto">一键智能派工</button>
+  <button class="btn" id="btnAuto">按经济最优派工</button>
   <button class="btn primary" id="btnNewTask">新建任务</button>
 </header>
 
 <main>
   <!-- 左：成员负载 -->
   <section class="panel">
-    <h2>成员负载</h2>
+    <h2>成员负载<em>资源管理</em></h2>
     <div id="members"></div>
     <div class="form">
       <input id="mName" placeholder="姓名" aria-label="成员姓名">
       <div class="two">
-        <label class="sr-only" for="mRole">成员角色</label><select id="mRole" aria-label="成员角色"></select>
-        <input id="mHours" type="number" min="1" step="1" value="30" title="周可用工时" aria-label="周可用工时">
+        <select id="mRole" aria-label="成员角色"></select>
+        <input id="mHours" type="number" min="1" step="1" value="30" title="周产能工时" aria-label="周产能工时">
       </div>
-      <label class="sr-only" for="mCost">小时成本</label>
-      <input id="mCost" type="number" min="1" step="10" value="100" placeholder="小时成本（元）" title="综合小时成本">
+      <input id="mCost" type="number" min="1" step="10" value="120" title="人力成本 元/小时" aria-label="人力成本（元每小时）">
       <button class="btn" id="btnAddMember">添加成员</button>
     </div>
   </section>
@@ -152,36 +200,59 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
     <div class="board" id="board"></div>
   </section>
 
-  <!-- 右：风险预警 -->
-  <section class="panel">
-    <h2>风险预警</h2>
-    <div id="alerts"></div>
-    <h2 style="margin-top:18px">经济决策</h2>
-    <div id="economics"></div>
+  <!-- 右：经济决策 + 风险预警 -->
+  <section class="side">
+    <div class="panel">
+      <h2>经济决策<em>成本 · 净现值 · 投资组合</em></h2>
+      <div id="econ"></div>
+    </div>
+    <div class="panel">
+      <h2>风险预警<em>风险管理</em></h2>
+      <div id="alerts"></div>
+    </div>
   </section>
 </main>
 
-<!-- 新建任务弹窗 -->
+<!-- 新建任务 -->
 <div class="mask" id="mask">
   <div class="modal">
     <h3>新建任务</h3>
+    <div class="desc">收益与截止日决定延期成本，是排期与派工的经济依据</div>
     <div class="form">
       <input id="tTitle" placeholder="任务标题" aria-label="任务标题">
       <div class="two">
-        <select id="tSkill" aria-label="任务所需技能"></select>
-        <select id="tPriority" aria-label="任务优先级"></select>
+        <div><label>所需学科</label><select id="tSkill"></select></div>
+        <div><label>优先级</label><select id="tPriority"></select></div>
       </div>
       <div class="two">
-        <input id="tEstimate" type="number" min="0.5" step="0.5" value="8" title="预估工时" aria-label="预估工时">
-        <input id="tDue" type="date" aria-label="截止日期">
+        <div><label>预估工时</label><input id="tEstimate" type="number" min="0.5" step="0.5" value="8"></div>
+        <div><label>截止日期</label><input id="tDue" type="date"></div>
       </div>
-      <label class="sr-only" for="tValue">预期业务价值</label>
-      <input id="tValue" type="number" min="0" step="100" value="3000" placeholder="预期业务价值（元）">
-      <select id="tAssignee" aria-label="任务负责人"></select>
+      <div><label>预期业务收益（元）</label><input id="tValue" type="number" min="0" step="1000" value="50000"></div>
+      <div><label>负责人</label><select id="tAssignee"></select></div>
     </div>
     <div class="actions">
       <button class="btn" id="btnCancel">取消</button>
       <button class="btn primary" id="btnCreate">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- 决策矩阵 -->
+<div class="mask" id="dmask">
+  <div class="modal wide">
+    <h3 id="dTitle"></h3>
+    <div class="desc" id="dDesc"></div>
+    <table class="matrix">
+      <thead><tr>
+        <th>承接方案</th><th>投入工时</th><th>人力成本</th><th>加班溢价</th><th>总投入</th>
+        <th>预计完成</th><th>延期</th><th>延期损失</th><th>产能占用</th><th>净现值</th><th>ROI</th><th>回收期</th>
+      </tr></thead>
+      <tbody id="dBody"></tbody>
+    </table>
+    <div class="rationale" id="dWhy"></div>
+    <div class="actions">
+      <button class="btn" id="btnDClose">关闭</button>
     </div>
   </div>
 </div>
@@ -192,19 +263,32 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
 /* ---------- 常量与工具 ---------- */
 const ROLES = {frontend:'前端', backend:'后端', qa:'测试', product:'产品', ops:'运维'};
 const PRIORITIES = {p0:'P0 紧急', p1:'P1 常规', p2:'P2 低'};
+const PRIORITY_WEIGHTS = {p0:3, p1:2, p2:1};
 const COLUMNS = [['todo','待办'],['doing','进行中'],['review','待评审'],['done','已完成']];
 
-let state = {members:[], tasks:[], workloads:[], alerts:[], health:{}, economics:{}, today:''};
+let state = {members:[], tasks:[], workloads:[], alerts:[], health:{}, economics:null, today:''};
+/* task_id -> 投资组合中的经济画像 */
+let econByTask = {};
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = v => Math.round(v * 100) + '%';
+
+/* 金额展示：上万用「万」，否则用千分位 */
+function money(v){
+  const n = Number(v) || 0, sign = n < 0 ? '-' : '', a = Math.abs(n);
+  if(a >= 10000) return sign + '¥' + (a / 10000).toFixed(1) + '万';
+  return sign + '¥' + Math.round(a).toLocaleString('zh-CN');
+}
+const signed = v => (v >= 0 ? '' : '') + money(v);
+const cls = v => v >= 0 ? 'pos' : 'neg';
 
 function toast(msg){
   const el = $('toast');
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), 2000);
+  el._t = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
 async function api(method, url, body){
@@ -218,29 +302,26 @@ async function api(method, url, body){
   return data;
 }
 
-/* 负载率对应的颜色 */
 function loadColor(r){
   if(r > 1) return 'var(--danger)';
   if(r > .85) return 'var(--warn)';
   return 'var(--ok)';
 }
-
-/* 距今天数：负数表示已逾期 */
-function daysLeft(due){
-  return Math.round((new Date(due) - new Date(state.today)) / 86400000);
-}
+const daysLeft = due => Math.round((new Date(due) - new Date(state.today)) / 86400000);
 
 /* ---------- 渲染 ---------- */
 function render(){
-  renderHealth();
+  econByTask = {};
+  (state.economics?.portfolio.items || []).forEach(i => econByTask[i.task_id] = i);
+  renderHeader();
   renderMembers();
   renderBoard();
-  renderAlerts();
   renderEconomics();
+  renderAlerts();
 }
 
-function renderHealth(){
-  const h = state.health;
+function renderHeader(){
+  const h = state.health, e = state.economics;
   const color = h.score >= 85 ? 'var(--ok)' : h.score >= 65 ? 'var(--warn)' : 'var(--danger)';
   const ring = $('ring');
   ring.textContent = h.score;
@@ -248,8 +329,12 @@ function renderHealth(){
   ring.style.border = '3px solid ' + color;
   $('healthMeta').innerHTML =
     esc(h.comment) + '<br>按时 ' + pct(h.on_time) + ' · 均衡 ' + pct(h.balance) + ' · 派工 ' + pct(h.coverage);
+  $('kpi').innerHTML = `
+    <div>在手投入<b>${money(e.total_cost)}</b></div>
+    <div>预期收益<b>${money(e.total_value)}</b></div>
+    <div>净现值<b class="${cls(e.total_npv)}">${signed(e.total_npv)}</b></div>
+    <div>投资回报率<b class="${cls(e.roi)}">${pct(e.roi)}</b></div>`;
 }
-const pct = v => Math.round(v * 100) + '%';
 
 function renderMembers(){
   const box = $('members');
@@ -259,12 +344,13 @@ function renderMembers(){
       <div class="row">
         <span class="name">${esc(w.name)}</span>
         <span class="tag">${ROLES[w.role]}</span>
-        <span class="spacer" style="flex:1"></span>
+        <span class="tag">¥${w.hourly_cost}/h</span>
+        <span style="flex:1"></span>
         <button class="del" data-del-member="${w.member_id}" title="移除成员" aria-label="移除成员 ${esc(w.name)}">×</button>
       </div>
       <div class="bar"><i style="width:${Math.min(w.ratio * 100, 100)}%;background:${loadColor(w.ratio)}"></i></div>
-      <div class="num">${w.assigned.toFixed(1)}h / ${w.capacity.toFixed(0)}h ·
-        ${pct(w.ratio)} · ${w.open_tasks} 项 · ¥${money(memberById(w.member_id).hourly_cost)}/h${w.nearest_due ? ' · 最近 ' + w.nearest_due : ''}</div>
+      <div class="num">${w.assigned.toFixed(1)}h / ${w.capacity.toFixed(0)}h · ${pct(w.ratio)} ·
+        ${w.open_tasks} 项 · 在手 ${money(w.committed_cost)}</div>
     </div>`).join('');
 }
 
@@ -290,25 +376,68 @@ function card(t){
   const options = ['<option value="">未派工</option>'].concat(
     state.members.map(m => `<option value="${m.id}"${t.assignee === m.id ? ' selected' : ''}>${esc(m.name)}</option>`)
   ).join('');
+
+  // 经济画像：收益、WSJF 排序值，以及组合测算出的净现值与回报率
+  const delayCost = t.delay_cost_per_day > 0
+    ? t.delay_cost_per_day
+    : t.value * .02 * (PRIORITY_WEIGHTS[t.priority] / 2);
+  const wsjf = t.estimate > 0 ? delayCost / t.estimate : 0;
+  const e = econByTask[t.id];
+  const econ = t.value > 0
+    ? `<div class="econ">
+         <span>收益 ${money(t.value)}</span>
+         <span>延期 ${money(delayCost)}/天</span>
+         <span>WSJF ${wsjf.toFixed(0)}</span>
+         ${e ? `<span class="${cls(e.npv)}">NPV ${signed(e.npv)} · ROI ${pct(e.roi)}</span>` : ''}
+       </div>`
+    : `<div class="econ" style="color:var(--muted)">未估值，不参与经济决策</div>`;
+
   return `<div class="card ${t.priority}" draggable="true" data-id="${t.id}">
     <div class="title">${esc(t.title)}</div>
     <div class="meta">
       <span class="tag">${t.priority.toUpperCase()}</span>
       <span class="tag">${ROLES[t.skill]}</span>
       <span>${t.estimate}h</span>
-      <span>价值 ¥${money(t.business_value)}</span>
-      <span class="${dueCls}">${dueTxt}</span>
+      <span class="${dueCls}">${esc(dueTxt)}</span>
     </div>
-    <select class="status-select" data-status-select="${t.id}" aria-label="修改任务状态">
-      ${COLUMNS.map(([key,label]) => `<option value="${key}"${t.status===key?' selected':''}>${label}</option>`).join('')}
-    </select>
+    ${econ}
     <div class="foot">
       <select data-assign="${t.id}">${options}</select>
-      <button class="btn" style="padding:2px 8px" data-suggest="${t.id}" title="推荐负责人" aria-label="为 ${esc(t.title)} 推荐负责人">荐</button>
+      <button class="btn" style="padding:2px 8px" data-decide="${t.id}" title="查看派工决策矩阵">决策</button>
       <button class="del" data-del-task="${t.id}" title="删除任务" aria-label="删除任务 ${esc(t.title)}">×</button>
     </div>
-    <div class="hint" id="hint-${t.id}"></div>
+    <select class="status-select" data-status-select="${t.id}" aria-label="修改任务状态">
+      ${COLUMNS.map(([key, label]) => `<option value="${key}"${t.status === key ? ' selected' : ''}>${label}</option>`).join('')}
+    </select>
   </div>`;
+}
+
+function renderEconomics(){
+  const e = state.economics, p = e.portfolio;
+  const used = p.capacity_hours > 0 ? p.used_hours / p.capacity_hours : 0;
+  $('econ').innerHTML = `
+    <div class="grid2">
+      <div class="stat"><span>逾期沉没损失</span><b class="neg">${money(e.sunk_delay_loss)}</b></div>
+      <div class="stat"><span>跨学科协作溢价</span><b class="gold">${money(e.cross_overhead)}</b></div>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">
+      本周投资组合 · 产能 ${p.used_hours.toFixed(1)}h / ${p.capacity_hours.toFixed(0)}h
+    </div>
+    <div class="capbar"><i style="width:${Math.min(used * 100, 100)}%"></i></div>
+    <div class="grid2">
+      <div class="stat"><span>组合投入</span><b>${money(p.total_cost)}</b></div>
+      <div class="stat"><span>组合净现值</span><b class="${cls(p.total_npv)}">${signed(p.total_npv)}</b></div>
+      <div class="stat"><span>加权回报率</span><b class="${cls(p.weighted_roi)}">${pct(p.weighted_roi)}</b></div>
+      <div class="stat"><span>顺延 ${p.deferred_count} 项损失</span><b class="neg">${money(p.deferred_loss)}</b></div>
+    </div>
+    ${p.items.length ? p.items.map(i => `
+      <div class="pf ${i.selected ? '' : 'off'}">
+        <span class="mark">${i.selected ? '✓' : '⏸'}</span>
+        <span class="t">${esc(i.title)}
+          <div class="r">${i.hours.toFixed(1)}h · ${money(i.cost)} · 密度 ${money(i.density)}/h · ${esc(i.reason)}</div>
+        </span>
+      </div>`).join('') : '<div class="empty">没有已估值的在手任务</div>'}
+    ${e.unvalued ? `<div class="empty">另有 ${e.unvalued} 个任务未估算收益</div>` : ''}`;
 }
 
 function renderAlerts(){
@@ -317,21 +446,8 @@ function renderAlerts(){
   box.innerHTML = state.alerts.map(a => `<div class="alert ${a.level}">${esc(a.text)}</div>`).join('');
 }
 
-function renderEconomics(){
-  const e = state.economics;
-  $('economics').innerHTML = `<div class="economics">
-    <div class="metric"><b>¥${money(e.projected_cost)}</b><span>未完成人力成本</span></div>
-    <div class="metric"><b>¥${money(e.business_value)}</b><span>预期业务价值</span></div>
-    <div class="metric" style="grid-column:1/-1"><b>${pct(e.portfolio_roi)}</b><span>项目组合 ROI = (价值 - 成本) / 成本</span></div>
-  </div>`;
-}
-
-const money = v => Number(v || 0).toLocaleString('zh-CN', {maximumFractionDigits:0});
-const memberById = id => state.members.find(m => m.id === id) || {hourly_cost:0};
-
 /* ---------- 交互绑定 ---------- */
 function bindBoard(){
-  // 拖拽卡片改变任务状态
   document.querySelectorAll('.card').forEach(el => {
     el.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', el.dataset.id));
   });
@@ -341,52 +457,67 @@ function bindBoard(){
     col.addEventListener('drop', async e => {
       e.preventDefault();
       col.classList.remove('over');
-      const id = e.dataTransfer.getData('text/plain');
-      await patch(id, {status: col.dataset.status});
+      await patch(e.dataTransfer.getData('text/plain'), {status: col.dataset.status});
     });
   });
-  // 下拉切换负责人
   document.querySelectorAll('[data-assign]').forEach(sel => {
     sel.addEventListener('change', () =>
       patch(sel.dataset.assign, {assignee: sel.value ? Number(sel.value) : null}));
   });
-  // 推荐负责人
-  document.querySelectorAll('[data-suggest]').forEach(btn => {
-    btn.addEventListener('click', () => showSuggestion(btn.dataset.suggest));
-  });
   document.querySelectorAll('[data-status-select]').forEach(sel => {
-    sel.addEventListener('change', () => patch(sel.dataset.statusSelect, {status:sel.value}));
+    sel.addEventListener('change', () => patch(sel.dataset.statusSelect, {status: sel.value}));
+  });
+  document.querySelectorAll('[data-decide]').forEach(btn => {
+    btn.addEventListener('click', () => openDecision(btn.dataset.decide));
   });
   document.querySelectorAll('[data-del-task]').forEach(btn => {
     btn.addEventListener('click', () => remove('DELETE', '/api/tasks/' + btn.dataset.delTask));
   });
 }
 
-async function showSuggestion(id){
+/* 决策矩阵：把每个候选方案的成本、工期、净现值摊开对比 */
+async function openDecision(id){
   try{
-    const list = await api('GET', `/api/tasks/${id}/suggest`);
-    const hint = $('hint-' + id);
-    if(!list.length){ hint.textContent = '暂无可用成员'; return; }
-    hint.innerHTML = list.slice(0, 3).map((s, i) =>
-      `${i + 1}. <b>${esc(s.name)}</b> ${Math.round(s.score * 100)}分 · ${esc(s.reason)}`).join('<br>');
+    const d = await api('GET', `/api/tasks/${id}/decision`);
+    $('dTitle').textContent = '派工决策 · ' + d.title;
+    $('dDesc').innerHTML = `预期收益 ${money(d.value)} · WSJF ${d.wsjf.toFixed(0)} ` +
+      `· 贴现率 12%/年 · 产能上限 130% · 点击任意一行即可按该方案派工`;
+    $('dBody').innerHTML = d.plans.map(p => `
+      <tr class="${p.member_id === d.recommended ? 'best' : ''} ${p.feasible ? (p.member_id === d.cheapest ? 'cheap' : '') : 'bad'}"
+          data-pick="${p.feasible ? p.member_id : ''}" data-task="${d.task_id}" aria-disabled="${!p.feasible}" title="${esc(p.note)}">
+        <td>${esc(p.name)} <span class="tag">${ROLES[p.role]}</span>${p.cross_discipline ? ` <span class="tag">×${p.factor.toFixed(2)}</span>` : ''}</td>
+        <td>${p.effective_hours.toFixed(1)}h</td>
+        <td>${money(p.labor_cost)}</td>
+        <td>${p.overload_cost > 0 ? '<span class="neg">' + money(p.overload_cost) + '</span>' : '—'}</td>
+        <td>${money(p.cost)}</td>
+        <td>${p.finish_date}</td>
+        <td class="${p.delay_days > 0 ? 'neg' : 'pos'}">${p.delay_days > 0 ? '+' + p.delay_days + '天' : p.delay_days + '天'}</td>
+        <td>${p.delay_loss > 0 ? '<span class="neg">' + money(p.delay_loss) + '</span>' : '—'}</td>
+        <td class="${p.feasible ? '' : 'neg'}">${pct(p.load_after)}</td>
+        <td class="${cls(p.npv)}"><b>${signed(p.npv)}</b></td>
+        <td class="${cls(p.roi)}">${pct(p.roi)}</td>
+        <td>${p.payback_days != null ? p.payback_days.toFixed(1) + '天' : '—'}</td>
+      </tr>`).join('');
+    $('dWhy').innerHTML = '<b>决策依据 · </b>' + esc(d.rationale);
+    document.querySelectorAll('[data-pick]:not([data-pick=""])').forEach(tr => {
+      tr.onclick = async () => {
+        $('dmask').classList.remove('show');
+        await patch(tr.dataset.task, {assignee: Number(tr.dataset.pick)});
+        toast('已按所选方案派工');
+      };
+    });
+    $('dmask').classList.add('show');
   }catch(e){ toast(e.message); }
 }
 
 async function patch(id, body){
-  try{
-    await api('PATCH', '/api/tasks/' + id, body);
-    await refresh();
-  }catch(e){ toast(e.message); }
+  try{ await api('PATCH', '/api/tasks/' + id, body); await refresh(); }
+  catch(e){ toast(e.message); }
 }
-
 async function remove(method, url){
-  try{
-    await api(method, url);
-    await refresh();
-  }catch(e){ toast(e.message); }
+  try{ await api(method, url); await refresh(); }
+  catch(e){ toast(e.message); }
 }
-
-/* ---------- 数据加载 ---------- */
 async function refresh(){
   state = await api('GET', '/api/state');
   render();
@@ -398,7 +529,7 @@ function fillSelect(el, map){
 }
 
 function openModal(){
-  $('tAssignee').innerHTML = '<option value="">暂不派工（可稍后一键派工）</option>' +
+  $('tAssignee').innerHTML = '<option value="">暂不派工（可用经济最优派工自动分配）</option>' +
     state.members.map(m => `<option value="${m.id}">${esc(m.name)} · ${ROLES[m.role]}</option>`).join('');
   const d = new Date(state.today);
   d.setDate(d.getDate() + 7);
@@ -414,7 +545,10 @@ $('tPriority').value = 'p1';
 
 $('btnNewTask').onclick = openModal;
 $('btnCancel').onclick = () => $('mask').classList.remove('show');
-$('mask').onclick = e => { if(e.target === $('mask')) $('mask').classList.remove('show'); };
+$('btnDClose').onclick = () => $('dmask').classList.remove('show');
+[['mask'], ['dmask']].forEach(([id]) => {
+  $(id).onclick = e => { if(e.target === $(id)) $(id).classList.remove('show'); };
+});
 
 $('btnCreate').onclick = async () => {
   const title = $('tTitle').value.trim();
@@ -425,8 +559,8 @@ $('btnCreate').onclick = async () => {
       skill: $('tSkill').value,
       priority: $('tPriority').value,
       estimate: Number($('tEstimate').value),
-      business_value: Number($('tValue').value),
       due: $('tDue').value,
+      value: Number($('tValue').value),
       assignee: $('tAssignee').value ? Number($('tAssignee').value) : null
     });
     $('tTitle').value = '';
@@ -441,7 +575,8 @@ $('btnAddMember').onclick = async () => {
   if(!name){ toast('请填写姓名'); return; }
   try{
     await api('POST', '/api/members', {
-      name, role: $('mRole').value, weekly_hours: Number($('mHours').value),
+      name, role: $('mRole').value,
+      weekly_hours: Number($('mHours').value),
       hourly_cost: Number($('mCost').value)
     });
     $('mName').value = '';
@@ -454,7 +589,7 @@ $('btnAuto').onclick = async () => {
   try{
     const r = await api('POST', '/api/auto-assign');
     await refresh();
-    toast(r.assigned ? `已自动派工 ${r.assigned} 个任务` : '没有待派工的任务');
+    toast(r.assigned ? `已按 WSJF 排序与净现值最优分配 ${r.assigned} 个任务` : '没有待派工的任务');
   }catch(e){ toast(e.message); }
 };
 
