@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moonlight · 研发团队协作台</title>
+<style>
+/* ---------- 基础样式 ---------- */
+:root{
+  --bg:#0e1116; --panel:#161b22; --line:#232a35; --text:#d7dee8; --muted:#7d8896;
+  --accent:#7c9cff; --danger:#ff6b6b; --warn:#f0b64c; --ok:#4ec98f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font:inherit;color:var(--text);background:#0f141b;border:1px solid var(--line);
+  border-radius:6px;padding:6px 8px;outline:none}
+input:focus,select:focus{border-color:var(--accent)}
+
+/* ---------- 顶栏 ---------- */
+header{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);
+  background:var(--panel);position:sticky;top:0;z-index:10}
+.logo{font-size:17px;font-weight:600;letter-spacing:.5px}
+.logo span{color:var(--accent)}
+.sub{color:var(--muted);font-size:12px}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);border-radius:6px;padding:6px 14px;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);color:#0e1116;border-color:var(--accent);font-weight:600}
+.btn.primary:hover{opacity:.85;color:#0e1116}
+
+/* 健康度指示 */
+.health{display:flex;align-items:center;gap:10px}
+.ring{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px}
+.health .meta{font-size:12px;color:var(--muted);max-width:190px}
+
+/* ---------- 布局 ---------- */
+main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.panel h2{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:10px;
+  text-transform:uppercase;letter-spacing:1px}
+
+/* ---------- 成员负载 ---------- */
+.member{padding:8px 0;border-bottom:1px dashed var(--line)}
+.member:last-child{border-bottom:none}
+.member .row{display:flex;align-items:center;gap:6px}
+.member .name{font-weight:600}
+.tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.bar{height:6px;background:#0f141b;border-radius:3px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;transition:width .3s}
+.member .num{font-size:11px;color:var(--muted);margin-top:3px}
+.del{color:var(--muted);font-size:12px}
+.del:hover{color:var(--danger)}
+
+/* ---------- 看板 ---------- */
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:260px}
+.col.over{border-color:var(--accent);background:#1a2130}
+.col h3{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
+.card{background:#0f141b;border:1px solid var(--line);border-left-width:3px;border-radius:8px;
+  padding:9px;margin-bottom:8px;cursor:grab}
+.card:hover{border-color:#3a4658}
+.card.p0{border-left-color:var(--danger)}
+.card.p1{border-left-color:var(--warn)}
+.card.p2{border-left-color:#48566b}
+.card .title{font-weight:600;margin-bottom:5px;word-break:break-all}
+.card .meta{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:11px;color:var(--muted)}
+.card .foot{display:flex;gap:6px;align-items:center;margin-top:7px}
+.card select{flex:1;font-size:12px;padding:3px 5px}
+.overdue{color:var(--danger);font-weight:600}
+.soon{color:var(--warn)}
+.hint{font-size:11px;color:var(--accent);margin-top:6px;line-height:1.5}
+
+/* ---------- 预警 ---------- */
+.alert{border-left:3px solid var(--line);padding:5px 0 5px 8px;margin-bottom:7px;font-size:12.5px}
+.alert.danger{border-color:var(--danger)}
+.alert.warn{border-color:var(--warn)}
+.alert.info{border-color:var(--accent);color:var(--muted)}
+.empty{color:var(--muted);font-size:12px;padding:6px 0}
+
+/* ---------- 表单与弹窗 ---------- */
+.form{display:grid;gap:7px;margin-top:10px}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:20}
+.mask.show{display:grid}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;width:380px}
+.modal h3{margin-bottom:12px}
+.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1e2530;
+  border:1px solid var(--line);border-radius:8px;padding:8px 16px;opacity:0;transition:.25s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Moon<span>light</span></div>
+    <div class="sub">企业研发团队协作台</div>
+  </div>
+  <div class="health">
+    <div class="ring" id="ring">--</div>
+    <div class="meta" id="healthMeta"></div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnAuto">一键智能派工</button>
+  <button class="btn primary" id="btnNewTask">新建任务</button>
+</header>
+
+<main>
+  <!-- 左：成员负载 -->
+  <section class="panel">
+    <h2>成员负载</h2>
+    <div id="members"></div>
+    <div class="form">
+      <input id="mName" placeholder="姓名">
+      <div class="two">
+        <select id="mRole"></select>
+        <input id="mHours" type="number" min="1" step="1" value="30" title="周可用工时">
+      </div>
+      <button class="btn" id="btnAddMember">添加成员</button>
+    </div>
+  </section>
+
+  <!-- 中：任务看板 -->
+  <section>
+    <div class="board" id="board"></div>
+  </section>
+
+  <!-- 右：风险预警 -->
+  <section class="panel">
+    <h2>风险预警</h2>
+    <div id="alerts"></div>
+  </section>
+</main>
+
+<!-- 新建任务弹窗 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <h3>新建任务</h3>
+    <div class="form">
+      <input id="tTitle" placeholder="任务标题">
+      <div class="two">
+        <select id="tSkill"></select>
+        <select id="tPriority"></select>
+      </div>
+      <div class="two">
+        <input id="tEstimate" type="number" min="0.5" step="0.5" value="8" title="预估工时">
+        <input id="tDue" type="date">
+      </div>
+      <select id="tAssignee"></select>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnCancel">取消</button>
+      <button class="btn primary" id="btnCreate">创建</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ---------- 常量与工具 ---------- */
+const ROLES = {frontend:'前端', backend:'后端', qa:'测试', product:'产品', ops:'运维'};
+const PRIORITIES = {p0:'P0 紧急', p1:'P1 常规', p2:'P2 低'};
+const COLUMNS = [['todo','待办'],['doing','进行中'],['review','待评审'],['done','已完成']];
+
+let state = {members:[], tasks:[], workloads:[], alerts:[], health:{}, today:''};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function toast(msg){
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+async function api(method, url, body){
+  const res = await fetch(url, {
+    method,
+    headers: body ? {'Content-Type':'application/json'} : {},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok){ throw new Error(data.error || ('请求失败 ' + res.status)); }
+  return data;
+}
+
+/* 负载率对应的颜色 */
+function loadColor(r){
+  if(r > 1) return 'var(--danger)';
+  if(r > .85) return 'var(--warn)';
+  return 'var(--ok)';
+}
+
+/* 距今天数：负数表示已逾期 */
+function daysLeft(due){
+  return Math.round((new Date(due) - new Date(state.today)) / 86400000);
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  renderHealth();
+  renderMembers();
+  renderBoard();
+  renderAlerts();
+}
+
+function renderHealth(){
+  const h = state.health;
+  const color = h.score >= 85 ? 'var(--ok)' : h.score >= 65 ? 'var(--warn)' : 'var(--danger)';
+  const ring = $('ring');
+  ring.textContent = h.score;
+  ring.style.color = color;
+  ring.style.border = '3px solid ' + color;
+  $('healthMeta').innerHTML =
+    esc(h.comment) + '<br>按时 ' + pct(h.on_time) + ' · 均衡 ' + pct(h.balance) + ' · 派工 ' + pct(h.coverage);
+}
+const pct = v => Math.round(v * 100) + '%';
+
+function renderMembers(){
+  const box = $('members');
+  if(!state.workloads.length){ box.innerHTML = '<div class="empty">还没有成员</div>'; return; }
+  box.innerHTML = state.workloads.map(w => `
+    <div class="member">
+      <div class="row">
+        <span class="name">${esc(w.name)}</span>
+        <span class="tag">${ROLES[w.role]}</span>
+        <span class="spacer" style="flex:1"></span>
+        <button class="del" data-del-member="${w.member_id}" title="移除成员">×</button>
+      </div>
+      <div class="bar"><i style="width:${Math.min(w.ratio * 100, 100)}%;background:${loadColor(w.ratio)}"></i></div>
+      <div class="num">${w.assigned.toFixed(1)}h / ${w.capacity.toFixed(0)}h ·
+        ${pct(w.ratio)} · ${w.open_tasks} 项${w.nearest_due ? ' · 最近 ' + w.nearest_due : ''}</div>
+    </div>`).join('');
+}
+
+function renderBoard(){
+  $('board').innerHTML = COLUMNS.map(([key, label]) => {
+    const list = state.tasks.filter(t => t.status === key);
+    const hours = list.reduce((s, t) => s + t.estimate, 0);
+    return `<div class="col" data-status="${key}">
+      <h3><span>${label}</span><span>${list.length} 项 / ${hours.toFixed(1)}h</span></h3>
+      ${list.map(card).join('')}
+    </div>`;
+  }).join('');
+  bindBoard();
+}
+
+function card(t){
+  const left = daysLeft(t.due);
+  let dueCls = '', dueTxt = t.due;
+  if(t.status !== 'done'){
+    if(left < 0){ dueCls = 'overdue'; dueTxt = t.due + ' 逾期' + (-left) + '天'; }
+    else if(left <= 3){ dueCls = 'soon'; dueTxt = t.due + ' 剩' + left + '天'; }
+  }
+  const options = ['<option value="">未派工</option>'].concat(
+    state.members.map(m => `<option value="${m.id}"${t.assignee === m.id ? ' selected' : ''}>${esc(m.name)}</option>`)
+  ).join('');
+  return `<div class="card ${t.priority}" draggable="true" data-id="${t.id}">
+    <div class="title">${esc(t.title)}</div>
+    <div class="meta">
+      <span class="tag">${t.priority.toUpperCase()}</span>
+      <span class="tag">${ROLES[t.skill]}</span>
+      <span>${t.estimate}h</span>
+      <span class="${dueCls}">${dueTxt}</span>
+    </div>
+    <div class="foot">
+      <select data-assign="${t.id}">${options}</select>
+      <button class="btn" style="padding:2px 8px" data-suggest="${t.id}" title="推荐负责人">荐</button>
+      <button class="del" data-del-task="${t.id}" title="删除任务">×</button>
+    </div>
+    <div class="hint" id="hint-${t.id}"></div>
+  </div>`;
+}
+
+function renderAlerts(){
+  const box = $('alerts');
+  if(!state.alerts.length){ box.innerHTML = '<div class="empty">暂无风险，节奏正常</div>'; return; }
+  box.innerHTML = state.alerts.map(a => `<div class="alert ${a.level}">${esc(a.text)}</div>`).join('');
+}
+
+/* ---------- 交互绑定 ---------- */
+function bindBoard(){
+  // 拖拽卡片改变任务状态
+  document.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', el.dataset.id));
+  });
+  document.querySelectorAll('.col').forEach(col => {
+    col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('over'); });
+    col.addEventListener('dragleave', () => col.classList.remove('over'));
+    col.addEventListener('drop', async e => {
+      e.preventDefault();
+      col.classList.remove('over');
+      const id = e.dataTransfer.getData('text/plain');
+      await patch(id, {status: col.dataset.status});
+    });
+  });
+  // 下拉切换负责人
+  document.querySelectorAll('[data-assign]').forEach(sel => {
+    sel.addEventListener('change', () =>
+      patch(sel.dataset.assign, {assignee: sel.value ? Number(sel.value) : null}));
+  });
+  // 推荐负责人
+  document.querySelectorAll('[data-suggest]').forEach(btn => {
+    btn.addEventListener('click', () => showSuggestion(btn.dataset.suggest));
+  });
+  document.querySelectorAll('[data-del-task]').forEach(btn => {
+    btn.addEventListener('click', () => remove('DELETE', '/api/tasks/' + btn.dataset.delTask));
+  });
+}
+
+async function showSuggestion(id){
+  try{
+    const list = await api('GET', `/api/tasks/${id}/suggest`);
+    const hint = $('hint-' + id);
+    if(!list.length){ hint.textContent = '暂无可用成员'; return; }
+    hint.innerHTML = list.slice(0, 3).map((s, i) =>
+      `${i + 1}. <b>${esc(s.name)}</b> ${Math.round(s.score * 100)}分 · ${esc(s.reason)}`).join('<br>');
+  }catch(e){ toast(e.message); }
+}
+
+async function patch(id, body){
+  try{
+    await api('PATCH', '/api/tasks/' + id, body);
+    await refresh();
+  }catch(e){ toast(e.message); }
+}
+
+async function remove(method, url){
+  try{
+    await api(method, url);
+    await refresh();
+  }catch(e){ toast(e.message); }
+}
+
+/* ---------- 数据加载 ---------- */
+async function refresh(){
+  state = await api('GET', '/api/state');
+  render();
+}
+
+/* ---------- 初始化 ---------- */
+function fillSelect(el, map){
+  el.innerHTML = Object.entries(map).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+}
+
+function openModal(){
+  $('tAssignee').innerHTML = '<option value="">暂不派工（可稍后一键派工）</option>' +
+    state.members.map(m => `<option value="${m.id}">${esc(m.name)} · ${ROLES[m.role]}</option>`).join('');
+  const d = new Date(state.today);
+  d.setDate(d.getDate() + 7);
+  $('tDue').value = d.toISOString().slice(0, 10);
+  $('mask').classList.add('show');
+  $('tTitle').focus();
+}
+
+fillSelect($('mRole'), ROLES);
+fillSelect($('tSkill'), ROLES);
+fillSelect($('tPriority'), PRIORITIES);
+$('tPriority').value = 'p1';
+
+$('btnNewTask').onclick = openModal;
+$('btnCancel').onclick = () => $('mask').classList.remove('show');
+$('mask').onclick = e => { if(e.target === $('mask')) $('mask').classList.remove('show'); };
+
+$('btnCreate').onclick = async () => {
+  const title = $('tTitle').value.trim();
+  if(!title){ toast('请填写任务标题'); return; }
+  try{
+    await api('POST', '/api/tasks', {
+      title,
+      skill: $('tSkill').value,
+      priority: $('tPriority').value,
+      estimate: Number($('tEstimate').value),
+      due: $('tDue').value,
+      assignee: $('tAssignee').value ? Number($('tAssignee').value) : null
+    });
+    $('tTitle').value = '';
+    $('mask').classList.remove('show');
+    await refresh();
+    toast('任务已创建');
+  }catch(e){ toast(e.message); }
+};
+
+$('btnAddMember').onclick = async () => {
+  const name = $('mName').value.trim();
+  if(!name){ toast('请填写姓名'); return; }
+  try{
+    await api('POST', '/api/members', {
+      name, role: $('mRole').value, weekly_hours: Number($('mHours').value)
+    });
+    $('mName').value = '';
+    await refresh();
+    toast('成员已添加');
+  }catch(e){ toast(e.message); }
+};
+
+$('btnAuto').onclick = async () => {
+  try{
+    const r = await api('POST', '/api/auto-assign');
+    await refresh();
+    toast(r.assigned ? `已自动派工 ${r.assigned} 个任务` : '没有待派工的任务');
+  }catch(e){ toast(e.message); }
+};
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-del-member]');
+  if(btn) remove('DELETE', '/api/members/' + btn.dataset.delMember);
+});
+
+refresh().catch(e => toast(e.message));
+</script>
+</body>
+</html>
