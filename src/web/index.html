@@ -17,6 +17,8 @@ input,select{font:inherit;color:var(--text);background:#0f141b;border:1px solid 
   border-radius:6px;padding:6px 8px;outline:none;width:100%}
 input:focus,select:focus{border-color:var(--accent)}
 table{border-collapse:collapse;width:100%}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---------- 顶栏 ---------- */
 header{display:flex;align-items:center;gap:18px;padding:12px 20px;border-bottom:1px solid var(--line);
@@ -74,6 +76,7 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
 .card .econ{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;margin-top:5px;color:var(--gold)}
 .card .foot{display:flex;gap:6px;align-items:center;margin-top:7px}
 .card select{flex:1;font-size:12px;padding:3px 5px}
+.status-select{display:none}
 .overdue{color:var(--danger);font-weight:600}
 .soon{color:var(--warn)}
 
@@ -132,6 +135,31 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1e2530;
   border:1px solid var(--line);border-radius:8px;padding:8px 16px;opacity:0;transition:.25s;pointer-events:none;z-index:30}
 #toast.show{opacity:1}
+
+@media (max-width:1400px){
+  header{flex-wrap:wrap}
+  .kpi{order:3;width:100%;padding:10px 0 0;border-left:0;border-top:1px solid var(--line)}
+  main{grid-template-columns:230px minmax(0,1fr)}
+  main>section:last-child{grid-column:1/-1}
+}
+@media (max-width:760px){
+  html,body{max-width:100%;overflow-x:hidden}
+  header{position:static;gap:10px;padding:12px;width:100vw;max-width:100vw;overflow:hidden}
+  header>div:first-child{width:100%}
+  header .spacer{display:none}
+  #btnAuto,#btnNewTask{flex:0 0 calc(50% - 5px);width:calc(50% - 5px);min-width:0;
+    padding-inline:6px;white-space:nowrap}
+  header .health{order:3;width:100%}
+  .kpi{order:4;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  main{display:block;padding:10px}
+  main>section{margin-bottom:10px}
+  .board{grid-template-columns:1fr}
+  .col{min-height:100px;margin-bottom:10px}
+  .card{cursor:default}
+  .status-select{display:block;width:100%;margin-top:7px}
+  .modal,.modal.wide{width:min(96vw,820px);padding:14px}
+  .matrix{min-width:780px}
+}
 </style>
 </head>
 <body>
@@ -157,12 +185,12 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
     <h2>成员负载<em>资源管理</em></h2>
     <div id="members"></div>
     <div class="form">
-      <input id="mName" placeholder="姓名">
+      <input id="mName" placeholder="姓名" aria-label="成员姓名">
       <div class="two">
-        <select id="mRole"></select>
-        <input id="mHours" type="number" min="1" step="1" value="30" title="周产能工时">
+        <select id="mRole" aria-label="成员角色"></select>
+        <input id="mHours" type="number" min="1" step="1" value="30" title="周产能工时" aria-label="周产能工时">
       </div>
-      <input id="mCost" type="number" min="1" step="10" value="120" title="人力成本 元/小时">
+      <input id="mCost" type="number" min="1" step="10" value="120" title="人力成本 元/小时" aria-label="人力成本（元每小时）">
       <button class="btn" id="btnAddMember">添加成员</button>
     </div>
   </section>
@@ -191,7 +219,7 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
     <h3>新建任务</h3>
     <div class="desc">收益与截止日决定延期成本，是排期与派工的经济依据</div>
     <div class="form">
-      <input id="tTitle" placeholder="任务标题">
+      <input id="tTitle" placeholder="任务标题" aria-label="任务标题">
       <div class="two">
         <div><label>所需学科</label><select id="tSkill"></select></div>
         <div><label>优先级</label><select id="tPriority"></select></div>
@@ -235,6 +263,7 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
 /* ---------- 常量与工具 ---------- */
 const ROLES = {frontend:'前端', backend:'后端', qa:'测试', product:'产品', ops:'运维'};
 const PRIORITIES = {p0:'P0 紧急', p1:'P1 常规', p2:'P2 低'};
+const PRIORITY_WEIGHTS = {p0:3, p1:2, p2:1};
 const COLUMNS = [['todo','待办'],['doing','进行中'],['review','待评审'],['done','已完成']];
 
 let state = {members:[], tasks:[], workloads:[], alerts:[], health:{}, economics:null, today:''};
@@ -317,7 +346,7 @@ function renderMembers(){
         <span class="tag">${ROLES[w.role]}</span>
         <span class="tag">¥${w.hourly_cost}/h</span>
         <span style="flex:1"></span>
-        <button class="del" data-del-member="${w.member_id}" title="移除成员">×</button>
+        <button class="del" data-del-member="${w.member_id}" title="移除成员" aria-label="移除成员 ${esc(w.name)}">×</button>
       </div>
       <div class="bar"><i style="width:${Math.min(w.ratio * 100, 100)}%;background:${loadColor(w.ratio)}"></i></div>
       <div class="num">${w.assigned.toFixed(1)}h / ${w.capacity.toFixed(0)}h · ${pct(w.ratio)} ·
@@ -349,12 +378,15 @@ function card(t){
   ).join('');
 
   // 经济画像：收益、WSJF 排序值，以及组合测算出的净现值与回报率
-  const wsjf = t.estimate > 0 ? t.delay_cost_per_day / t.estimate : 0;
+  const delayCost = t.delay_cost_per_day > 0
+    ? t.delay_cost_per_day
+    : t.value * .02 * (PRIORITY_WEIGHTS[t.priority] / 2);
+  const wsjf = t.estimate > 0 ? delayCost / t.estimate : 0;
   const e = econByTask[t.id];
   const econ = t.value > 0
     ? `<div class="econ">
          <span>收益 ${money(t.value)}</span>
-         <span>延期 ${money(t.delay_cost_per_day)}/天</span>
+         <span>延期 ${money(delayCost)}/天</span>
          <span>WSJF ${wsjf.toFixed(0)}</span>
          ${e ? `<span class="${cls(e.npv)}">NPV ${signed(e.npv)} · ROI ${pct(e.roi)}</span>` : ''}
        </div>`
@@ -366,14 +398,17 @@ function card(t){
       <span class="tag">${t.priority.toUpperCase()}</span>
       <span class="tag">${ROLES[t.skill]}</span>
       <span>${t.estimate}h</span>
-      <span class="${dueCls}">${dueTxt}</span>
+      <span class="${dueCls}">${esc(dueTxt)}</span>
     </div>
     ${econ}
     <div class="foot">
       <select data-assign="${t.id}">${options}</select>
       <button class="btn" style="padding:2px 8px" data-decide="${t.id}" title="查看派工决策矩阵">决策</button>
-      <button class="del" data-del-task="${t.id}" title="删除任务">×</button>
+      <button class="del" data-del-task="${t.id}" title="删除任务" aria-label="删除任务 ${esc(t.title)}">×</button>
     </div>
+    <select class="status-select" data-status-select="${t.id}" aria-label="修改任务状态">
+      ${COLUMNS.map(([key, label]) => `<option value="${key}"${t.status === key ? ' selected' : ''}>${label}</option>`).join('')}
+    </select>
   </div>`;
 }
 
@@ -429,6 +464,9 @@ function bindBoard(){
     sel.addEventListener('change', () =>
       patch(sel.dataset.assign, {assignee: sel.value ? Number(sel.value) : null}));
   });
+  document.querySelectorAll('[data-status-select]').forEach(sel => {
+    sel.addEventListener('change', () => patch(sel.dataset.statusSelect, {status: sel.value}));
+  });
   document.querySelectorAll('[data-decide]').forEach(btn => {
     btn.addEventListener('click', () => openDecision(btn.dataset.decide));
   });
@@ -446,7 +484,7 @@ async function openDecision(id){
       `· 贴现率 12%/年 · 产能上限 130% · 点击任意一行即可按该方案派工`;
     $('dBody').innerHTML = d.plans.map(p => `
       <tr class="${p.member_id === d.recommended ? 'best' : ''} ${p.feasible ? (p.member_id === d.cheapest ? 'cheap' : '') : 'bad'}"
-          data-pick="${p.member_id}" data-task="${d.task_id}" title="${esc(p.note)}">
+          data-pick="${p.feasible ? p.member_id : ''}" data-task="${d.task_id}" aria-disabled="${!p.feasible}" title="${esc(p.note)}">
         <td>${esc(p.name)} <span class="tag">${ROLES[p.role]}</span>${p.cross_discipline ? ` <span class="tag">×${p.factor.toFixed(2)}</span>` : ''}</td>
         <td>${p.effective_hours.toFixed(1)}h</td>
         <td>${money(p.labor_cost)}</td>
@@ -458,10 +496,10 @@ async function openDecision(id){
         <td class="${p.feasible ? '' : 'neg'}">${pct(p.load_after)}</td>
         <td class="${cls(p.npv)}"><b>${signed(p.npv)}</b></td>
         <td class="${cls(p.roi)}">${pct(p.roi)}</td>
-        <td>${isFinite(p.payback_days) ? p.payback_days.toFixed(1) + '天' : '—'}</td>
+        <td>${p.payback_days != null ? p.payback_days.toFixed(1) + '天' : '—'}</td>
       </tr>`).join('');
     $('dWhy').innerHTML = '<b>决策依据 · </b>' + esc(d.rationale);
-    document.querySelectorAll('[data-pick]').forEach(tr => {
+    document.querySelectorAll('[data-pick]:not([data-pick=""])').forEach(tr => {
       tr.onclick = async () => {
         $('dmask').classList.remove('show');
         await patch(tr.dataset.task, {assignee: Number(tr.dataset.pick)});

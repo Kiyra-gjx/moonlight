@@ -49,11 +49,15 @@ pub fn route(store: &Mutex<Store>, req: Request) -> Response {
         }
 
         ("POST", ["api", "members"]) => match serde_json::from_str::<NewMember>(&req.body) {
-            Ok(input) if !input.name.trim().is_empty() => {
+            Ok(input) if input.name.trim().is_empty() => bad("成员姓名不能为空"),
+            Ok(input) if input.name.chars().count() > 40 => bad("成员姓名不能超过 40 个字符"),
+            Ok(input) if !positive(input.weekly_hours) => bad("周产能必须是大于 0 的数字"),
+            Ok(input) if !positive(input.hourly_cost) => bad("小时成本必须是大于 0 的数字"),
+            Ok(mut input) => {
+                input.name = input.name.trim().to_string();
                 let created = store.lock().unwrap().add_member(input);
                 created_json(&created)
             }
-            Ok(_) => bad("成员姓名不能为空"),
             Err(e) => bad(&format!("参数解析失败: {e}")),
         },
 
@@ -65,9 +69,26 @@ pub fn route(store: &Mutex<Store>, req: Request) -> Response {
 
         ("POST", ["api", "tasks"]) => match serde_json::from_str::<NewTask>(&req.body) {
             Ok(input) if input.title.trim().is_empty() => bad("任务标题不能为空"),
-            Ok(input) if crate::date::parse(&input.due).is_none() => bad("截止日期格式应为 YYYY-MM-DD"),
-            Ok(input) => {
-                let created = store.lock().unwrap().add_task(input);
+            Ok(input) if input.title.chars().count() > 120 => bad("任务标题不能超过 120 个字符"),
+            Ok(input) if crate::date::parse(&input.due).is_none() => {
+                bad("截止日期格式应为 YYYY-MM-DD")
+            }
+            Ok(input) if !positive(input.estimate) => bad("预估工时必须是大于 0 的数字"),
+            Ok(input) if !non_negative(input.value) => bad("预期收益必须是非负数"),
+            Ok(input)
+                if input
+                    .delay_cost_per_day
+                    .is_some_and(|value| !non_negative(value)) =>
+            {
+                bad("延期日损失必须是非负数")
+            }
+            Ok(mut input) => {
+                let mut s = store.lock().unwrap();
+                if input.assignee.is_some_and(|id| s.member(id).is_none()) {
+                    return bad("负责人不存在");
+                }
+                input.title = input.title.trim().to_string();
+                let created = s.add_task(input);
                 created_json(&created)
             }
             Err(e) => bad(&format!("参数解析失败: {e}")),
@@ -78,13 +99,49 @@ pub fn route(store: &Mutex<Store>, req: Request) -> Response {
                 return bad("任务 id 非法");
             };
             match serde_json::from_str::<TaskPatch>(&req.body) {
-                Ok(patch) => match store.lock().unwrap().patch_task(id, patch) {
-                    Some(t) => ok(&t),
-                    None => not_found("任务不存在"),
-                },
+                Ok(patch) => {
+                    if patch.title.as_ref().is_some_and(|v| v.trim().is_empty()) {
+                        return bad("任务标题不能为空");
+                    }
+                    if patch
+                        .title
+                        .as_ref()
+                        .is_some_and(|v| v.chars().count() > 120)
+                    {
+                        return bad("任务标题不能超过 120 个字符");
+                    }
+                    if patch
+                        .due
+                        .as_ref()
+                        .is_some_and(|v| crate::date::parse(v).is_none())
+                    {
+                        return bad("截止日期格式应为 YYYY-MM-DD");
+                    }
+                    if patch.estimate.is_some_and(|v| !positive(v)) {
+                        return bad("预估工时必须是大于 0 的数字");
+                    }
+                    if patch.value.is_some_and(|v| !non_negative(v)) {
+                        return bad("预期收益必须是非负数");
+                    }
+                    if patch.delay_cost_per_day.is_some_and(|v| !non_negative(v)) {
+                        return bad("延期日损失必须是非负数");
+                    }
+                    let mut s = store.lock().unwrap();
+                    if patch
+                        .assignee
+                        .flatten()
+                        .is_some_and(|member_id| s.member(member_id).is_none())
+                    {
+                        return bad("负责人不存在");
+                    }
+                    match s.patch_task(id, patch) {
+                        Some(t) => ok(&t),
+                        None => not_found("任务不存在"),
+                    }
+                }
                 Err(e) => bad(&format!("参数解析失败: {e}")),
             }
-        },
+        }
 
         ("DELETE", ["api", "tasks", id]) => match id.parse::<u32>() {
             Ok(id) if store.lock().unwrap().remove_task(id) => ok(&json!({ "removed": id })),
@@ -117,6 +174,14 @@ pub fn route(store: &Mutex<Store>, req: Request) -> Response {
     }
 }
 
+fn positive(value: f64) -> bool {
+    value.is_finite() && value > 0.0
+}
+
+fn non_negative(value: f64) -> bool {
+    value.is_finite() && value >= 0.0
+}
+
 fn ok<T: Serialize>(v: &T) -> Response {
     match serde_json::to_string(v) {
         Ok(body) => Response::json(200, body),
@@ -137,4 +202,84 @@ fn bad(msg: &str) -> Response {
 
 fn not_found(msg: &str) -> Response {
     Response::json(404, json!({ "error": msg }).to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn request(method: &str, path: &str, body: &str) -> Request {
+        Request {
+            method: method.to_string(),
+            path: path.to_string(),
+            body: body.to_string(),
+        }
+    }
+
+    #[test]
+    fn 创建任务应拒绝不存在的真实日期() {
+        let store = Mutex::new(Store::default());
+        let response = route(
+            &store,
+            request(
+                "POST",
+                "/api/tasks",
+                r#"{"title":"T","skill":"backend","priority":"p1","estimate":4,"value":1000,"due":"2026-02-31"}"#,
+            ),
+        );
+        assert_eq!(response.status, 400);
+        assert!(store.lock().unwrap().tasks.is_empty());
+    }
+
+    #[test]
+    fn 成员成本与工时应为正数() {
+        let store = Mutex::new(Store::default());
+        let response = route(
+            &store,
+            request(
+                "POST",
+                "/api/members",
+                r#"{"name":"A","role":"backend","weekly_hours":0,"hourly_cost":-1}"#,
+            ),
+        );
+        assert_eq!(response.status, 400);
+        assert!(store.lock().unwrap().members.is_empty());
+    }
+
+    #[test]
+    fn 更新任务应拒绝空标题和非法负责人() {
+        let mut raw = Store::default();
+        let task = raw.add_task(NewTask {
+            title: "任务".into(),
+            skill: Role::Backend,
+            priority: Priority::P1,
+            estimate: 4.0,
+            due: "2026-12-01".into(),
+            assignee: None,
+            value: 1_000.0,
+            delay_cost_per_day: None,
+        });
+        let store = Mutex::new(raw);
+
+        let empty = route(
+            &store,
+            request(
+                "PATCH",
+                &format!("/api/tasks/{}", task.id),
+                r#"{"title":"  "}"#,
+            ),
+        );
+        let missing = route(
+            &store,
+            request(
+                "PATCH",
+                &format!("/api/tasks/{}", task.id),
+                r#"{"assignee":999}"#,
+            ),
+        );
+
+        assert_eq!(empty.status, 400);
+        assert_eq!(missing.status, 400);
+        assert_eq!(store.lock().unwrap().task(task.id).unwrap().title, "任务");
+    }
 }

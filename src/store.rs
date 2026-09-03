@@ -2,6 +2,7 @@
 //! 团队规模下数据量极小，这样最简单也最容易人工查看与备份。
 
 use std::fs;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -26,21 +27,33 @@ pub struct Store {
 
 impl Store {
     /// 从文件加载；文件不存在时生成一份演示数据
-    pub fn load(path: impl AsRef<Path>) -> Self {
+    pub fn load(path: impl AsRef<Path>) -> Result<Self, String> {
         let path = path.as_ref().to_path_buf();
-        if let Ok(text) = fs::read_to_string(&path) {
-            if let Ok(mut s) = serde_json::from_str::<Store>(&text) {
+        match fs::read_to_string(&path) {
+            Ok(text) => {
+                let mut s = serde_json::from_str::<Store>(&text)
+                    .map_err(|e| format!("{} 格式损坏（{e}），原文件已保留", path.display()))?;
                 s.path = path;
-                return s;
+                // 兼容没有 next_* 字段或计数器落后的旧数据，避免新增记录撞号。
+                s.next_member_id = s
+                    .next_member_id
+                    .max(s.members.iter().map(|m| m.id).max().unwrap_or(0));
+                s.next_task_id = s
+                    .next_task_id
+                    .max(s.tasks.iter().map(|t| t.id).max().unwrap_or(0));
+                Ok(s)
             }
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                let mut s = Store {
+                    path,
+                    ..Default::default()
+                };
+                s.seed();
+                s.save();
+                Ok(s)
+            }
+            Err(e) => Err(format!("无法读取 {}: {e}", path.display())),
         }
-        let mut s = Store {
-            path,
-            ..Default::default()
-        };
-        s.seed();
-        s.save();
-        s
     }
 
     /// 写回磁盘，失败时只告警不中断服务；未指定路径时为纯内存模式
@@ -53,7 +66,10 @@ impl Store {
         }
         match serde_json::to_string_pretty(self) {
             Ok(text) => {
-                if let Err(e) = fs::write(&self.path, text) {
+                let tmp = self.path.with_extension("json.tmp");
+                let result = fs::write(&tmp, text).and_then(|_| fs::rename(&tmp, &self.path));
+                if let Err(e) = result {
+                    let _ = fs::remove_file(&tmp);
                     eprintln!("[moonlight] 数据落盘失败: {e}");
                 }
             }
@@ -129,7 +145,7 @@ impl Store {
         };
         let t = self.tasks.iter_mut().find(|t| t.id == id)?;
         if let Some(v) = patch.title {
-            t.title = v;
+            t.title = v.trim().to_string();
         }
         if let Some(v) = patch.skill {
             t.skill = v;
@@ -194,21 +210,125 @@ impl Store {
 
         // 标题、学科、优先级、工时、截止日偏移、负责人、预期业务收益（元，季度可量化口径）
         let tasks = [
-            ("鉴权网关灰度放量", Role::Backend, Priority::P0, 12.0, 2, Some(1), 45_000.0),
-            ("工时看板前端重构", Role::Frontend, Priority::P1, 16.0, 6, Some(2), 26_000.0),
-            ("发布流水线回归用例", Role::Qa, Priority::P1, 10.0, 4, Some(3), 20_000.0),
-            ("消息推送重复投递修复", Role::Backend, Priority::P0, 8.0, 1, None, 32_000.0),
-            ("季度需求池梳理", Role::Product, Priority::P2, 6.0, 12, Some(5), 9_000.0),
-            ("数据库慢查询治理", Role::Backend, Priority::P1, 14.0, -1, Some(4), 28_000.0),
+            (
+                "鉴权网关灰度放量",
+                Role::Backend,
+                Priority::P0,
+                12.0,
+                2,
+                Some(1),
+                45_000.0,
+            ),
+            (
+                "工时看板前端重构",
+                Role::Frontend,
+                Priority::P1,
+                16.0,
+                6,
+                Some(2),
+                26_000.0,
+            ),
+            (
+                "发布流水线回归用例",
+                Role::Qa,
+                Priority::P1,
+                10.0,
+                4,
+                Some(3),
+                20_000.0,
+            ),
+            (
+                "消息推送重复投递修复",
+                Role::Backend,
+                Priority::P0,
+                8.0,
+                1,
+                None,
+                32_000.0,
+            ),
+            (
+                "季度需求池梳理",
+                Role::Product,
+                Priority::P2,
+                6.0,
+                12,
+                Some(5),
+                9_000.0,
+            ),
+            (
+                "数据库慢查询治理",
+                Role::Backend,
+                Priority::P1,
+                14.0,
+                -1,
+                Some(4),
+                28_000.0,
+            ),
             // 测试同学跨学科接前端活，用于演示学科距离带来的工时与成本上浮
-            ("移动端埋点补齐", Role::Frontend, Priority::P2, 9.0, 9, Some(3), 12_000.0),
-            ("灰度配置中心接入", Role::Ops, Priority::P1, 10.0, 8, None, 16_000.0),
-            ("用户增长看板取数", Role::Backend, Priority::P2, 12.0, 15, None, 10_000.0),
+            (
+                "移动端埋点补齐",
+                Role::Frontend,
+                Priority::P2,
+                9.0,
+                9,
+                Some(3),
+                12_000.0,
+            ),
+            (
+                "灰度配置中心接入",
+                Role::Ops,
+                Priority::P1,
+                10.0,
+                8,
+                None,
+                16_000.0,
+            ),
+            (
+                "用户增长看板取数",
+                Role::Backend,
+                Priority::P2,
+                12.0,
+                15,
+                None,
+                10_000.0,
+            ),
             // 投入远大于收益，用于演示净现值为负时的砍需求决策
-            ("老旧接口文档整理", Role::Product, Priority::P2, 20.0, 20, None, 2_000.0),
-            ("客服工单导出优化", Role::Frontend, Priority::P1, 11.0, 5, None, 15_000.0),
-            ("压测环境扩容", Role::Ops, Priority::P1, 8.0, 7, None, 11_000.0),
-            ("埋点数据质量校验", Role::Qa, Priority::P2, 10.0, 18, None, 7_000.0),
+            (
+                "老旧接口文档整理",
+                Role::Product,
+                Priority::P2,
+                20.0,
+                20,
+                None,
+                2_000.0,
+            ),
+            (
+                "客服工单导出优化",
+                Role::Frontend,
+                Priority::P1,
+                11.0,
+                5,
+                None,
+                15_000.0,
+            ),
+            (
+                "压测环境扩容",
+                Role::Ops,
+                Priority::P1,
+                8.0,
+                7,
+                None,
+                11_000.0,
+            ),
+            (
+                "埋点数据质量校验",
+                Role::Qa,
+                Priority::P2,
+                10.0,
+                18,
+                None,
+                7_000.0,
+            ),
         ];
         for (title, skill, priority, estimate, due_offset, assignee, value) in tasks {
             self.add_task(NewTask {
@@ -303,5 +423,49 @@ mod tests {
             delay_cost_per_day: None,
         });
         assert_eq!(t.assignee, None);
+    }
+
+    fn 临时文件(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "moonlight-{name}-{}-{}.json",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("test")
+        ))
+    }
+
+    #[test]
+    fn 损坏的数据文件不应被覆盖() {
+        let path = 临时文件("corrupt");
+        fs::write(&path, "{broken-json").unwrap();
+
+        let result = Store::load(&path);
+
+        assert!(result.is_err());
+        assert_eq!(fs::read_to_string(&path).unwrap(), "{broken-json");
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn 加载旧数据后应修复编号计数器() {
+        let path = 临时文件("legacy");
+        fs::write(
+            &path,
+            r#"{
+              "members": [{"id": 41, "name": "旧成员", "role": "backend", "weekly_hours": 40, "hourly_cost": 100}],
+              "tasks": []
+            }"#,
+        )
+        .unwrap();
+
+        let mut store = Store::load(&path).unwrap();
+        let created = store.add_member(NewMember {
+            name: "新成员".into(),
+            role: Role::Qa,
+            weekly_hours: 40.0,
+            hourly_cost: 100.0,
+        });
+
+        assert_eq!(created.id, 42);
+        fs::remove_file(path).unwrap();
     }
 }

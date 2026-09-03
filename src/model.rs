@@ -109,7 +109,7 @@ pub struct Task {
     /// 截止日期 `YYYY-MM-DD`
     pub due: String,
     /// 预期业务收益，元。为 0 表示尚未估值，不参与经济决策
-    #[serde(default)]
+    #[serde(default, alias = "business_value")]
     pub value: f64,
     /// 每延期一天造成的损失，元/天
     #[serde(default)]
@@ -143,7 +143,7 @@ pub struct NewTask {
     pub due: String,
     #[serde(default)]
     pub assignee: Option<u32>,
-    #[serde(default)]
+    #[serde(default, alias = "business_value")]
     pub value: f64,
     /// 缺省时按「预期收益 × 日损失率 × 优先级权重」自动推导
     #[serde(default)]
@@ -159,6 +159,7 @@ pub struct TaskPatch {
     pub status: Option<Status>,
     pub estimate: Option<f64>,
     pub due: Option<String>,
+    #[serde(alias = "business_value")]
     pub value: Option<f64>,
     pub delay_cost_per_day: Option<f64>,
     /// 双层 Option：外层缺省表示不改，内层 None 表示取消派工

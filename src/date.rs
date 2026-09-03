@@ -23,7 +23,17 @@ pub fn parse(s: &str) -> Option<i64> {
     let y: i64 = parts[0].parse().ok()?;
     let m: i64 = parts[1].parse().ok()?;
     let d: i64 = parts[2].parse().ok()?;
-    if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
+    if !(1..=9999).contains(&y) || !(1..=12).contains(&m) {
+        return None;
+    }
+    let leap = y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
+    let max_day = match m {
+        2 if leap => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+    if !(1..=max_day).contains(&d) {
         return None;
     }
     // days_from_civil：把 3 月当作一年的起点，规避闰日的特殊处理
@@ -76,5 +86,8 @@ mod tests {
         assert!(parse("2026-13-01").is_none());
         assert!(parse("2026-09").is_none());
         assert!(parse("abc").is_none());
+        assert!(parse("2026-02-29").is_none());
+        assert!(parse("2026-02-31").is_none());
+        assert!(parse("2024-02-29").is_some());
     }
 }

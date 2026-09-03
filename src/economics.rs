@@ -143,7 +143,7 @@ pub struct Plan {
     /// 投资回报率
     pub roi: f64,
     /// 投资回收天数：每提前一天交付可挽回一天的延期损失
-    pub payback_days: f64,
+    pub payback_days: Option<f64>,
     /// 接单后的产能占用率
     pub load_after: f64,
     /// 是否在可持续产能范围内
@@ -179,7 +179,14 @@ pub fn plans(store: &Store, task: &Task, ledger: &Ledger) -> Vec<Plan> {
         .iter()
         .map(|m| {
             let hours = effective_hours(task, m);
-            let queued = ledger.queued(m.id);
+            // Ledger 来自当前 Store，已派工任务本身已经在台账中；评估该任务时
+            // 先扣除自身，避免把同一份工时重复计入排队时间与加班成本。
+            let current = if task.status.is_open() && task.assignee == Some(m.id) {
+                hours
+            } else {
+                0.0
+            };
+            let queued = (ledger.queued(m.id) - current).max(0.0);
             let labor_cost = hours * m.hourly_cost;
 
             // 边际成本递增：超产能部分按加班计价，进入疲劳区后再追加溢价
@@ -201,11 +208,7 @@ pub fn plans(store: &Store, task: &Task, ledger: &Ledger) -> Vec<Plan> {
             let present_value = task.value / (1.0 + daily_rate()).powf(wait);
             let npv = present_value - delay_loss - cost;
             let roi = if cost > 0.0 { npv / cost } else { 0.0 };
-            let payback_days = if unit_delay > 0.0 {
-                cost / unit_delay
-            } else {
-                f64::INFINITY
-            };
+            let payback_days = (unit_delay > 0.0).then_some(cost / unit_delay);
             let load_after = total / m.weekly_hours;
             let feasible = load_after <= MAX_LOAD;
 
@@ -261,45 +264,67 @@ pub fn decide(store: &Store, task: &Task) -> Decision {
     let ledger = Ledger::new(store);
     let plans = plans(store, task, &ledger);
 
-    let best = plans.first().cloned();
+    let best = task
+        .is_valued()
+        .then(|| plans.iter().find(|plan| plan.feasible).cloned())
+        .flatten();
     let cheap = plans.iter().min_by(|a, b| asc(a.cost, b.cost)).cloned();
     // 最早交付方案，完成日相同时取成本更低者
     let fast = plans
         .iter()
+        .filter(|plan| plan.feasible)
         .min_by(|a, b| a.delay_days.cmp(&b.delay_days).then(asc(a.cost, b.cost)))
         .cloned();
 
     // 无论推荐方案是否等于最低成本方案，都把「多花的钱能不能换回等值的时间」讲清楚
-    let rationale = match (&best, &cheap, &fast) {
-        (Some(b), Some(c), Some(f)) if b.member_id != c.member_id => format!(
-            "最低成本方案是{}（总投入 ¥{:.0}，{} 交付）。改选{}多投入 ¥{:.0}，\
+    let rationale = if !task.is_valued() {
+        "任务尚未估算业务收益，只展示投入成本，不给出经济最优推荐；请先完成收益估值。".to_string()
+    } else {
+        match (&best, &cheap, &fast) {
+            (Some(b), Some(c), _) if b.member_id != c.member_id && !c.feasible => format!(
+                "最低成本方案是{}（总投入 ¥{:.0}），但产能占用将达 {:.0}%，超过可持续上限。\
+             改选{}可避免不可执行的排期，并少承担 ¥{:.0} 延期代价，净现值高出 ¥{:.0}。",
+                c.name,
+                c.cost,
+                c.load_after * 100.0,
+                b.name,
+                (c.delay_loss - b.delay_loss).max(0.0),
+                b.npv - c.npv
+            ),
+            (Some(b), Some(c), Some(f)) if b.member_id != c.member_id => format!(
+                "最低成本方案是{}（总投入 ¥{:.0}，{} 交付）。改选{}多投入 ¥{:.0}，\
              可提前 {} 天交付、少承担 ¥{:.0} 延期损失，净现值高出 ¥{:.0}：\
              赶工溢价低于延期代价，这笔钱值得花。",
-            c.name,
-            c.cost,
-            c.finish_date,
-            b.name,
-            b.cost - c.cost,
-            (c.delay_days - b.delay_days).max(0),
-            (c.delay_loss - b.delay_loss).max(0.0),
-            b.npv - c.npv
-        ),
-        (Some(b), Some(_), Some(f)) if b.member_id != f.member_id => format!(
-            "{}同时是成本最低与净现值最优方案。更快的选择是{}（可提前 {} 天交付），\
+                c.name,
+                c.cost,
+                c.finish_date,
+                b.name,
+                b.cost - c.cost,
+                (c.delay_days - b.delay_days).max(0),
+                (c.delay_loss - b.delay_loss).max(0.0),
+                b.npv - c.npv
+            ),
+            (Some(b), Some(_), Some(f)) if b.member_id != f.member_id => format!(
+                "{}同时是成本最低与净现值最优方案。更快的选择是{}（可提前 {} 天交付），\
              但需多投入 ¥{:.0}，仅能挽回 ¥{:.0} 延期损失，净现值反而低 ¥{:.0}：\
              赶工溢价高于延期代价，不予采纳。",
-            b.name,
-            f.name,
-            (b.delay_days - f.delay_days).max(0),
-            (f.cost - b.cost).max(0.0),
-            (b.delay_loss - f.delay_loss).max(0.0),
-            b.npv - f.npv
-        ),
-        (Some(b), _, _) => format!(
-            "{}在成本与工期上同时占优，净现值 ¥{:.0}，无需权衡。",
-            b.name, b.npv
-        ),
-        _ => "团队暂无成员，无法生成派工方案。".to_string(),
+                b.name,
+                f.name,
+                (b.delay_days - f.delay_days).max(0),
+                (f.cost - b.cost).max(0.0),
+                (b.delay_loss - f.delay_loss).max(0.0),
+                b.npv - f.npv
+            ),
+            (Some(b), _, _) => format!(
+                "{}在成本与工期上同时占优，净现值 ¥{:.0}，无需权衡。",
+                b.name, b.npv
+            ),
+            _ if plans.is_empty() => "团队暂无成员，无法生成派工方案。".to_string(),
+            _ => format!(
+                "当前所有方案都会超过 {:.0}% 的可持续产能上限，请调整排期、拆分任务或增加人员。",
+                MAX_LOAD * 100.0
+            ),
+        }
     };
 
     Decision {
@@ -326,6 +351,8 @@ pub struct PortfolioItem {
     pub roi: f64,
     /// 单位工时净现值，投资组合的排序依据
     pub density: f64,
+    /// 最优候选人是否仍在可持续产能范围内
+    pub feasible: bool,
     /// 本周是否纳入
     pub selected: bool,
     pub reason: String,
@@ -390,6 +417,7 @@ pub fn portfolio(store: &Store) -> Portfolio {
                 npv: best.npv,
                 roi: best.roi,
                 density,
+                feasible: best.feasible,
                 selected: false,
                 reason: String::new(),
             })
@@ -405,6 +433,14 @@ pub fn portfolio(store: &Store) -> Portfolio {
     let mut deferred_loss = 0.0;
 
     for item in items.iter_mut() {
+        if !item.feasible {
+            item.reason = "当前无人能在可持续产能范围内承接，需调整排期或增援".to_string();
+            deferred_count += 1;
+            if let Some(t) = store.task(item.task_id) {
+                deferred_loss += delay_cost(t) * WORK_DAYS;
+            }
+            continue;
+        }
         if item.npv <= 0.0 {
             item.reason = format!("净现值为负（¥{:.0}），建议重估收益或缩减范围", item.npv);
             deferred_count += 1;
@@ -458,6 +494,7 @@ pub fn summary(store: &Store) -> Summary {
     for t in store.tasks.iter().filter(|t| t.status.is_open()) {
         if !t.is_valued() {
             unvalued += 1;
+            continue;
         }
         total_value += t.value;
 
@@ -545,7 +582,14 @@ mod tests {
         let mut s = Store::default();
         let be = 成员(&mut s, "后端", Role::Backend, 40.0, 100.0);
         let pd = 成员(&mut s, "产品", Role::Product, 40.0, 100.0);
-        let t = 任务(&mut s, "接口", Role::Backend, 10.0, &date::from_today(30), 50000.0);
+        let t = 任务(
+            &mut s,
+            "接口",
+            Role::Backend,
+            10.0,
+            &date::from_today(30),
+            50000.0,
+        );
         let task = s.task(t).unwrap();
 
         let own = effective_hours(task, s.member(be).unwrap());
@@ -559,7 +603,14 @@ mod tests {
         let mut s = Store::default();
         成员(&mut s, "快", Role::Backend, 40.0, 200.0);
         成员(&mut s, "慢", Role::Backend, 5.0, 200.0);
-        let t = 任务(&mut s, "活", Role::Backend, 10.0, &date::from_today(3), 60000.0);
+        let t = 任务(
+            &mut s,
+            "活",
+            Role::Backend,
+            10.0,
+            &date::from_today(3),
+            60000.0,
+        );
         let task = s.task(t).unwrap();
         let list = plans(&s, task, &Ledger::new(&s));
 
@@ -575,12 +626,22 @@ mod tests {
         // 便宜但产能低，交付慢；贵但产能高，交付快
         成员(&mut s, "便宜", Role::Backend, 5.0, 80.0);
         let 贵 = 成员(&mut s, "昂贵", Role::Backend, 40.0, 300.0);
-        let t = 任务(&mut s, "紧急活", Role::Backend, 10.0, &date::from_today(2), 200000.0);
+        let t = 任务(
+            &mut s,
+            "紧急活",
+            Role::Backend,
+            10.0,
+            &date::from_today(2),
+            200000.0,
+        );
         let d = decide(&s, s.task(t).unwrap());
 
         assert_eq!(d.recommended, Some(贵));
         assert_ne!(d.recommended, d.cheapest, "推荐方案不应等于最低成本方案");
-        assert!(d.rationale.contains("延期代价"), "决策说明应当解释时间与成本的权衡");
+        assert!(
+            d.rationale.contains("延期代价"),
+            "决策说明应当解释时间与成本的权衡"
+        );
     }
 
     #[test]
@@ -590,19 +651,43 @@ mod tests {
         let 稳 = 成员(&mut s, "稳", Role::Backend, 10.0, 100.0);
         成员(&mut s, "快而贵", Role::Backend, 40.0, 900.0);
         // 延期损失很小，不值得为提前交付支付赶工溢价
-        let t = 任务(&mut s, "常规活", Role::Backend, 10.0, &date::from_today(30), 8_000.0);
+        let t = 任务(
+            &mut s,
+            "常规活",
+            Role::Backend,
+            10.0,
+            &date::from_today(30),
+            8_000.0,
+        );
         let d = decide(&s, s.task(t).unwrap());
 
         assert_eq!(d.recommended, Some(稳));
         assert_eq!(d.recommended, d.cheapest);
-        assert!(d.rationale.contains("延期代价"), "应当解释为何不选更快的方案");
+        assert!(
+            d.rationale.contains("延期代价"),
+            "应当解释为何不选更快的方案"
+        );
     }
 
     #[test]
     fn wsjf_应当让高延期成本的小任务排前面() {
         let mut s = Store::default();
-        let 小而急 = 任务(&mut s, "小而急", Role::Backend, 2.0, &date::from_today(5), 100000.0);
-        let 大而缓 = 任务(&mut s, "大而缓", Role::Backend, 40.0, &date::from_today(5), 120000.0);
+        let 小而急 = 任务(
+            &mut s,
+            "小而急",
+            Role::Backend,
+            2.0,
+            &date::from_today(5),
+            100000.0,
+        );
+        let 大而缓 = 任务(
+            &mut s,
+            "大而缓",
+            Role::Backend,
+            40.0,
+            &date::from_today(5),
+            120000.0,
+        );
         assert!(wsjf(s.task(小而急).unwrap()) > wsjf(s.task(大而缓).unwrap()));
     }
 
@@ -612,7 +697,14 @@ mod tests {
         let 满 = 成员(&mut s, "已满", Role::Backend, 10.0, 50.0);
         成员(&mut s, "有空", Role::Backend, 40.0, 400.0);
         // 先把「已满」压到接近上限
-        let 占位 = 任务(&mut s, "占位", Role::Backend, 12.0, &date::from_today(30), 50_000.0);
+        let 占位 = 任务(
+            &mut s,
+            "占位",
+            Role::Backend,
+            12.0,
+            &date::from_today(30),
+            50_000.0,
+        );
         s.patch_task(
             占位,
             TaskPatch {
@@ -620,7 +712,14 @@ mod tests {
                 ..Default::default()
             },
         );
-        let t = 任务(&mut s, "新活", Role::Backend, 6.0, &date::from_today(30), 50_000.0);
+        let t = 任务(
+            &mut s,
+            "新活",
+            Role::Backend,
+            6.0,
+            &date::from_today(30),
+            50_000.0,
+        );
         let list = plans(&s, s.task(t).unwrap(), &Ledger::new(&s));
 
         let 满方案 = list.iter().find(|p| p.member_id == 满).unwrap();
@@ -633,9 +732,30 @@ mod tests {
     fn 投资组合应当受产能约束并按密度取舍() {
         let mut s = Store::default();
         成员(&mut s, "A", Role::Backend, 10.0, 100.0);
-        任务(&mut s, "高回报", Role::Backend, 5.0, &date::from_today(30), 90000.0);
-        任务(&mut s, "低回报", Role::Backend, 5.0, &date::from_today(30), 20000.0);
-        任务(&mut s, "挤不进", Role::Backend, 5.0, &date::from_today(30), 15000.0);
+        任务(
+            &mut s,
+            "高回报",
+            Role::Backend,
+            5.0,
+            &date::from_today(30),
+            90000.0,
+        );
+        任务(
+            &mut s,
+            "低回报",
+            Role::Backend,
+            5.0,
+            &date::from_today(30),
+            20000.0,
+        );
+        任务(
+            &mut s,
+            "挤不进",
+            Role::Backend,
+            5.0,
+            &date::from_today(30),
+            15000.0,
+        );
 
         let p = portfolio(&s);
         assert_eq!(p.capacity_hours, 10.0);
@@ -650,7 +770,14 @@ mod tests {
         let mut s = Store::default();
         成员(&mut s, "A", Role::Backend, 40.0, 500.0);
         // 收益远低于人力投入
-        任务(&mut s, "赔本活", Role::Backend, 20.0, &date::from_today(30), 1000.0);
+        任务(
+            &mut s,
+            "赔本活",
+            Role::Backend,
+            20.0,
+            &date::from_today(30),
+            1000.0,
+        );
         let p = portfolio(&s);
         assert!(!p.items[0].selected);
         assert!(p.items[0].reason.contains("净现值为负"));
@@ -660,9 +787,88 @@ mod tests {
     fn 未估值任务应当被统计但不进组合() {
         let mut s = Store::default();
         成员(&mut s, "A", Role::Backend, 40.0, 100.0);
-        任务(&mut s, "没估值", Role::Backend, 5.0, &date::from_today(10), 0.0);
+        任务(
+            &mut s,
+            "没估值",
+            Role::Backend,
+            5.0,
+            &date::from_today(10),
+            0.0,
+        );
         let sum = summary(&s);
         assert_eq!(sum.unvalued, 1);
+        assert_eq!(sum.total_cost, 0.0);
+        assert_eq!(sum.total_npv, 0.0);
         assert!(sum.portfolio.items.is_empty());
+    }
+
+    #[test]
+    fn 已派工任务的决策不应重复计算自身工时() {
+        let mut s = Store::default();
+        let member = 成员(&mut s, "A", Role::Backend, 40.0, 100.0);
+        let task_id = 任务(
+            &mut s,
+            "已派工",
+            Role::Backend,
+            10.0,
+            &date::from_today(10),
+            10_000.0,
+        );
+        s.patch_task(
+            task_id,
+            TaskPatch {
+                assignee: Some(Some(member)),
+                ..Default::default()
+            },
+        );
+
+        let task = s.task(task_id).unwrap();
+        let plan = plans(&s, task, &Ledger::new(&s))
+            .into_iter()
+            .find(|p| p.member_id == member)
+            .unwrap();
+
+        assert_eq!(plan.effective_hours, 10.0);
+        assert!((plan.load_after - 0.25).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn 全部方案超载时不应给出推荐人() {
+        let mut s = Store::default();
+        成员(&mut s, "独苗", Role::Backend, 10.0, 100.0);
+        let task_id = 任务(
+            &mut s,
+            "大任务",
+            Role::Backend,
+            20.0,
+            &date::from_today(10),
+            50_000.0,
+        );
+
+        let decision = decide(&s, s.task(task_id).unwrap());
+
+        assert_eq!(decision.recommended, None);
+        assert!(decision.rationale.contains("所有方案"));
+    }
+
+    #[test]
+    fn 无延期成本时回收期应序列化为空值() {
+        let mut s = Store::default();
+        成员(&mut s, "A", Role::Backend, 40.0, 100.0);
+        let task_id = 任务(
+            &mut s,
+            "未估值",
+            Role::Backend,
+            4.0,
+            &date::from_today(10),
+            0.0,
+        );
+
+        let decision = decide(&s, s.task(task_id).unwrap());
+        let json = serde_json::to_value(&decision).unwrap();
+
+        assert_eq!(decision.recommended, None);
+        assert!(decision.rationale.contains("尚未估算业务收益"));
+        assert!(json["plans"][0]["payback_days"].is_null());
     }
 }

@@ -230,8 +230,7 @@ pub fn alerts(store: &Store, loads: &[Workload]) -> Vec<Alert> {
                         level: "warn",
                         text: format!(
                             "《{}》当前方案净现值 -¥{:.0}，投入产出倒挂，建议缩减范围或重估收益",
-                            t.title,
-                            -p.npv
+                            t.title, -p.npv
                         ),
                     });
                 }
@@ -252,7 +251,9 @@ pub fn alerts(store: &Store, loads: &[Workload]) -> Vec<Alert> {
                 .members
                 .iter()
                 .map(|m| economics::effective_hours(t, m))
-                .fold(None, |acc: Option<f64>, h| Some(acc.map_or(h, |a| a.min(h)))),
+                .fold(None, |acc: Option<f64>, h| {
+                    Some(acc.map_or(h, |a| a.min(h)))
+                }),
         })
         .sum();
     if capacity > 0.0 && demand > capacity {
@@ -340,8 +341,7 @@ pub fn health(store: &Store, loads: &[Workload]) -> Health {
         1.0
     } else {
         let mean = loads.iter().map(|w| w.ratio).sum::<f64>() / loads.len() as f64;
-        let var =
-            loads.iter().map(|w| (w.ratio - mean).powi(2)).sum::<f64>() / loads.len() as f64;
+        let var = loads.iter().map(|w| (w.ratio - mean).powi(2)).sum::<f64>() / loads.len() as f64;
         (1.0 - var.sqrt().min(1.0)).max(0.0)
     };
 
@@ -420,7 +420,14 @@ mod tests {
     fn 跨学科承接应当占用更多产能() {
         let mut s = Store::default();
         let fe = 造成员(&mut s, "前端", Role::Frontend, 40.0);
-        let t = 造任务(&mut s, "后端活", Role::Backend, Priority::P1, 10.0, "2026-12-01");
+        let t = 造任务(
+            &mut s,
+            "后端活",
+            Role::Backend,
+            Priority::P1,
+            10.0,
+            "2026-12-01",
+        );
         s.patch_task(
             t,
             TaskPatch {
@@ -429,7 +436,11 @@ mod tests {
             },
         );
         let w = &workloads(&s)[0];
-        assert!(w.assigned > 10.0, "跨学科折算后应当大于基准工时: {}", w.assigned);
+        assert!(
+            w.assigned > 10.0,
+            "跨学科折算后应当大于基准工时: {}",
+            w.assigned
+        );
     }
 
     #[test]
@@ -458,7 +469,14 @@ mod tests {
         let mut s = Store::default();
         造成员(&mut s, "前端", Role::Frontend, 40.0);
         let be = 造成员(&mut s, "后端", Role::Backend, 40.0);
-        let t = 造任务(&mut s, "接口开发", Role::Backend, Priority::P1, 8.0, "2026-12-01");
+        let t = 造任务(
+            &mut s,
+            "接口开发",
+            Role::Backend,
+            Priority::P1,
+            8.0,
+            "2026-12-01",
+        );
         auto_assign(&mut s);
         assert_eq!(s.task(t).unwrap().assignee, Some(be));
     }
@@ -468,7 +486,14 @@ mod tests {
         let mut s = Store::default();
         造成员(&mut s, "独苗", Role::Backend, 10.0);
         for i in 0..6 {
-            造任务(&mut s, &format!("T{i}"), Role::Backend, Priority::P1, 5.0, "2026-12-01");
+            造任务(
+                &mut s,
+                &format!("T{i}"),
+                Role::Backend,
+                Priority::P1,
+                5.0,
+                "2026-12-01",
+            );
         }
         auto_assign(&mut s);
 
@@ -489,7 +514,14 @@ mod tests {
         let mut s = Store::default();
         造成员(&mut s, "独苗", Role::Backend, 10.0);
         for i in 0..5 {
-            造任务(&mut s, &format!("T{i}"), Role::Backend, Priority::P1, 5.0, "2026-12-01");
+            造任务(
+                &mut s,
+                &format!("T{i}"),
+                Role::Backend,
+                Priority::P1,
+                5.0,
+                "2026-12-01",
+            );
         }
         let list = alerts(&s, &workloads(&s));
         assert!(list.iter().any(|a| a.text.contains("缺口")));
