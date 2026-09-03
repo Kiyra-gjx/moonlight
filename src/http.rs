@@ -7,6 +7,8 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use std::thread;
 
+const MAX_BODY_BYTES: usize = 1024 * 1024;
+
 /// 解析后的请求
 pub struct Request {
     pub method: String,
@@ -61,6 +63,7 @@ fn reason(status: u16) -> &'static str {
         400 => "Bad Request",
         404 => "Not Found",
         405 => "Method Not Allowed",
+        413 => "Payload Too Large",
         _ => "Internal Server Error",
     }
 }
@@ -120,6 +123,12 @@ where
         .get("content-length")
         .and_then(|v| v.parse().ok())
         .unwrap_or(0);
+    if len > MAX_BODY_BYTES {
+        return write_response(
+            &mut stream,
+            Response::json(413, r#"{"error":"请求体不能超过 1 MiB"}"#.to_string()),
+        );
+    }
     let mut body = vec![0u8; len];
     if len > 0 {
         reader.read_exact(&mut body)?;
@@ -131,8 +140,12 @@ where
         body: String::from_utf8_lossy(&body).into_owned(),
     });
 
+    write_response(&mut stream, resp)
+}
+
+fn write_response(stream: &mut TcpStream, resp: Response) -> std::io::Result<()> {
     let head = format!(
-        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nX-Content-Type-Options: nosniff\r\nContent-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'\r\nConnection: close\r\n\r\n",
         resp.status,
         reason(resp.status),
         resp.content_type,

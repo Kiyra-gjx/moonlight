@@ -75,6 +75,9 @@ pub struct Member {
     pub role: Role,
     /// 每周可投入研发的工时（容量）
     pub weekly_hours: f64,
+    /// 综合小时成本（元/小时，包含人力与管理分摊）
+    #[serde(default = "default_hourly_cost")]
+    pub hourly_cost: f64,
 }
 
 /// 研发任务
@@ -90,6 +93,9 @@ pub struct Task {
     pub assignee: Option<u32>,
     /// 预估工时
     pub estimate: f64,
+    /// 完成后可带来的预期业务价值（元）
+    #[serde(default = "default_business_value")]
+    pub business_value: f64,
     /// 截止日期 `YYYY-MM-DD`
     pub due: String,
 }
@@ -100,6 +106,8 @@ pub struct NewMember {
     pub name: String,
     pub role: Role,
     pub weekly_hours: f64,
+    #[serde(default = "default_hourly_cost")]
+    pub hourly_cost: f64,
 }
 
 /// 新建任务的入参
@@ -109,6 +117,8 @@ pub struct NewTask {
     pub skill: Role,
     pub priority: Priority,
     pub estimate: f64,
+    #[serde(default = "default_business_value")]
+    pub business_value: f64,
     pub due: String,
     #[serde(default)]
     pub assignee: Option<u32>,
@@ -122,10 +132,19 @@ pub struct TaskPatch {
     pub priority: Option<Priority>,
     pub status: Option<Status>,
     pub estimate: Option<f64>,
+    pub business_value: Option<f64>,
     pub due: Option<String>,
     /// 双层 Option：外层缺省表示不改，内层 None 表示取消派工
     #[serde(default, deserialize_with = "double_option")]
     pub assignee: Option<Option<u32>>,
+}
+
+pub fn default_hourly_cost() -> f64 {
+    100.0
+}
+
+pub fn default_business_value() -> f64 {
+    1000.0
 }
 
 /// 区分「字段未出现」与「字段显式为 null」

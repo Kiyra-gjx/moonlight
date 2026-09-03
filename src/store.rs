@@ -2,6 +2,7 @@
 //! 团队规模下数据量极小，这样最简单也最容易人工查看与备份。
 
 use std::fs;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -26,21 +27,33 @@ pub struct Store {
 
 impl Store {
     /// 从文件加载；文件不存在时生成一份演示数据
-    pub fn load(path: impl AsRef<Path>) -> Self {
+    pub fn load(path: impl AsRef<Path>) -> Result<Self, String> {
         let path = path.as_ref().to_path_buf();
-        if let Ok(text) = fs::read_to_string(&path) {
-            if let Ok(mut s) = serde_json::from_str::<Store>(&text) {
+        match fs::read_to_string(&path) {
+            Ok(text) => {
+                let mut s = serde_json::from_str::<Store>(&text)
+                    .map_err(|e| format!("{} 格式损坏（{e}），原文件已保留", path.display()))?;
                 s.path = path;
-                return s;
+                // 兼容旧数据：即使 next_* 缺失或落后，也不会产生重复 id。
+                s.next_member_id = s
+                    .next_member_id
+                    .max(s.members.iter().map(|m| m.id).max().unwrap_or(0));
+                s.next_task_id = s
+                    .next_task_id
+                    .max(s.tasks.iter().map(|t| t.id).max().unwrap_or(0));
+                Ok(s)
             }
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                let mut s = Store {
+                    path,
+                    ..Default::default()
+                };
+                s.seed();
+                s.save();
+                Ok(s)
+            }
+            Err(e) => Err(format!("无法读取 {}: {e}", path.display())),
         }
-        let mut s = Store {
-            path,
-            ..Default::default()
-        };
-        s.seed();
-        s.save();
-        s
     }
 
     /// 写回磁盘，失败时只告警不中断服务；未指定路径时为纯内存模式
@@ -53,7 +66,10 @@ impl Store {
         }
         match serde_json::to_string_pretty(self) {
             Ok(text) => {
-                if let Err(e) = fs::write(&self.path, text) {
+                let tmp = self.path.with_extension("json.tmp");
+                let result = fs::write(&tmp, text).and_then(|_| fs::rename(&tmp, &self.path));
+                if let Err(e) = result {
+                    let _ = fs::remove_file(&tmp);
                     eprintln!("[moonlight] 数据落盘失败: {e}");
                 }
             }
@@ -76,6 +92,7 @@ impl Store {
             name: input.name,
             role: input.role,
             weekly_hours: input.weekly_hours.max(1.0),
+            hourly_cost: input.hourly_cost.max(1.0),
         };
         self.members.push(m.clone());
         self.save();
@@ -106,6 +123,7 @@ impl Store {
             status: Status::Todo,
             assignee: input.assignee.filter(|id| self.member(*id).is_some()),
             estimate: input.estimate.max(0.5),
+            business_value: input.business_value.max(0.0),
             due: input.due,
         };
         self.tasks.push(t.clone());
@@ -121,7 +139,7 @@ impl Store {
         };
         let t = self.tasks.iter_mut().find(|t| t.id == id)?;
         if let Some(v) = patch.title {
-            t.title = v;
+            t.title = v.trim().to_string();
         }
         if let Some(v) = patch.skill {
             t.skill = v;
@@ -134,6 +152,9 @@ impl Store {
         }
         if let Some(v) = patch.estimate {
             t.estimate = v.max(0.5);
+        }
+        if let Some(v) = patch.business_value {
+            t.business_value = v.max(0.0);
         }
         if let Some(v) = patch.due {
             t.due = v;
@@ -161,35 +182,93 @@ impl Store {
     /// 首次启动时写入一组演示数据，避免打开界面是一片空白
     fn seed(&mut self) {
         let members = [
-            ("林洲", Role::Backend, 32.0),
-            ("周舟", Role::Frontend, 30.0),
-            ("陆晚", Role::Qa, 28.0),
-            ("何言", Role::Backend, 24.0),
-            ("苏念", Role::Product, 20.0),
+            ("林洲", Role::Backend, 32.0, 120.0),
+            ("周舟", Role::Frontend, 30.0, 110.0),
+            ("陆晚", Role::Qa, 28.0, 90.0),
+            ("何言", Role::Backend, 24.0, 100.0),
+            ("苏念", Role::Product, 20.0, 130.0),
         ];
-        for (name, role, hours) in members {
+        for (name, role, hours, cost) in members {
             self.add_member(NewMember {
                 name: name.to_string(),
                 role,
                 weekly_hours: hours,
+                hourly_cost: cost,
             });
         }
 
         let tasks = [
-            ("鉴权网关灰度放量", Role::Backend, Priority::P0, 12.0, 2, Some(1)),
-            ("工时看板前端重构", Role::Frontend, Priority::P1, 16.0, 6, Some(2)),
-            ("发布流水线回归用例", Role::Qa, Priority::P1, 10.0, 4, Some(3)),
-            ("消息推送重复投递修复", Role::Backend, Priority::P0, 8.0, 1, None),
-            ("季度需求池梳理", Role::Product, Priority::P2, 6.0, 12, Some(5)),
-            ("数据库慢查询治理", Role::Backend, Priority::P1, 14.0, -1, Some(4)),
-            ("移动端埋点补齐", Role::Frontend, Priority::P2, 9.0, 9, None),
+            (
+                "鉴权网关灰度放量",
+                Role::Backend,
+                Priority::P0,
+                12.0,
+                7200.0,
+                2,
+                Some(1),
+            ),
+            (
+                "工时看板前端重构",
+                Role::Frontend,
+                Priority::P1,
+                16.0,
+                4800.0,
+                6,
+                Some(2),
+            ),
+            (
+                "发布流水线回归用例",
+                Role::Qa,
+                Priority::P1,
+                10.0,
+                3200.0,
+                4,
+                Some(3),
+            ),
+            (
+                "消息推送重复投递修复",
+                Role::Backend,
+                Priority::P0,
+                8.0,
+                9000.0,
+                1,
+                None,
+            ),
+            (
+                "季度需求池梳理",
+                Role::Product,
+                Priority::P2,
+                6.0,
+                1800.0,
+                12,
+                Some(5),
+            ),
+            (
+                "数据库慢查询治理",
+                Role::Backend,
+                Priority::P1,
+                14.0,
+                5200.0,
+                -1,
+                Some(4),
+            ),
+            (
+                "移动端埋点补齐",
+                Role::Frontend,
+                Priority::P2,
+                9.0,
+                2300.0,
+                9,
+                None,
+            ),
         ];
-        for (title, skill, priority, estimate, due_offset, assignee) in tasks {
+        for (title, skill, priority, estimate, value, due_offset, assignee) in tasks {
             self.add_task(NewTask {
                 title: title.to_string(),
                 skill,
                 priority,
                 estimate,
+                business_value: value,
                 due: date::from_today(due_offset),
                 assignee,
             });
@@ -222,12 +301,14 @@ mod tests {
             name: "测试".into(),
             role: Role::Backend,
             weekly_hours: 40.0,
+            hourly_cost: 100.0,
         });
         let t = s.add_task(NewTask {
             title: "任务".into(),
             skill: Role::Backend,
             priority: Priority::P1,
             estimate: 4.0,
+            business_value: 1000.0,
             due: "2026-12-01".into(),
             assignee: Some(m.id),
         });
@@ -243,6 +324,7 @@ mod tests {
             skill: Role::Qa,
             priority: Priority::P2,
             estimate: 4.0,
+            business_value: 1000.0,
             due: "2026-12-01".into(),
             assignee: None,
         });
@@ -264,9 +346,24 @@ mod tests {
             skill: Role::Ops,
             priority: Priority::P1,
             estimate: 4.0,
+            business_value: 1000.0,
             due: "2026-12-01".into(),
             assignee: Some(999),
         });
         assert_eq!(t.assignee, None);
+    }
+
+    #[test]
+    fn 损坏的数据文件不应被覆盖() {
+        let path = std::env::temp_dir().join(format!(
+            "moonlight-corrupt-{}-{}.json",
+            std::process::id(),
+            std::thread::current().name().unwrap_or("test")
+        ));
+        fs::write(&path, "{broken-json").unwrap();
+        let result = Store::load(&path);
+        assert!(result.is_err());
+        assert_eq!(fs::read_to_string(&path).unwrap(), "{broken-json");
+        fs::remove_file(path).unwrap();
     }
 }

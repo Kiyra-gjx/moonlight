@@ -8,9 +8,11 @@ use crate::model::*;
 use crate::store::Store;
 
 /// 技能匹配在派工评分中的占比
-const W_SKILL: f64 = 0.55;
+const W_SKILL: f64 = 0.45;
 /// 剩余容量在派工评分中的占比
-const W_CAPACITY: f64 = 0.45;
+const W_CAPACITY: f64 = 0.30;
+/// 预计人力成本在派工评分中的占比
+const W_ECONOMY: f64 = 0.25;
 /// 技能不匹配时的兜底得分（允许跨技能救火，但明显降权）
 const SKILL_MISMATCH: f64 = 0.35;
 /// 负载率超过该值判定为过载
@@ -45,7 +47,19 @@ pub struct Suggestion {
     pub name: String,
     /// 0~1 的综合得分
     pub score: f64,
+    /// 考虑跨技能效率损失后的预计人力成本
+    pub projected_cost: f64,
+    /// 预期投资回报率 = (业务价值 - 人力成本) / 人力成本
+    pub roi: f64,
     pub reason: String,
+}
+
+/// 未完成任务组合的经济性摘要
+#[derive(Debug, Clone, Serialize)]
+pub struct Economics {
+    pub projected_cost: f64,
+    pub business_value: f64,
+    pub portfolio_roi: f64,
 }
 
 /// 预警条目
@@ -109,6 +123,15 @@ pub fn suggest(store: &Store, task: &Task) -> Vec<Suggestion> {
 
 /// 基于给定负载快照给候选人打分，供 suggest 与 auto_assign 共用
 fn rank(store: &Store, task: &Task, loads: &[Workload]) -> Vec<Suggestion> {
+    let candidate_costs: Vec<(u32, f64)> = store
+        .members
+        .iter()
+        .map(|m| (m.id, projected_cost(m, task)))
+        .collect();
+    let cheapest = candidate_costs
+        .iter()
+        .map(|(_, cost)| *cost)
+        .fold(f64::INFINITY, f64::min);
     let mut out: Vec<Suggestion> = store
         .members
         .iter()
@@ -124,32 +147,92 @@ fn rank(store: &Store, task: &Task, loads: &[Workload]) -> Vec<Suggestion> {
             };
             // 负载越低得分越高，1.5 倍容量以上直接归零
             let capacity_score = (1.0 - (after / 1.5).min(1.0)).max(0.0);
-            let score = W_SKILL * skill_score + W_CAPACITY * capacity_score;
+            let cost = candidate_costs
+                .iter()
+                .find(|(id, _)| *id == m.id)
+                .map(|(_, cost)| *cost)
+                .unwrap_or(0.0);
+            let economy_score = if cost > 0.0 { cheapest / cost } else { 1.0 };
+            let roi = if cost > 0.0 {
+                (task.business_value - cost) / cost
+            } else {
+                0.0
+            };
+            let score =
+                W_SKILL * skill_score + W_CAPACITY * capacity_score + W_ECONOMY * economy_score;
 
             let reason = if m.role == task.skill {
                 format!(
-                    "{}技能匹配，接单后负载 {:.0}%",
+                    "{}技能匹配，接单后负载 {:.0}%，成本 ¥{:.0}，ROI {:.0}%",
                     m.role.label(),
-                    after * 100.0
+                    after * 100.0,
+                    cost,
+                    roi * 100.0
                 )
             } else {
                 format!(
-                    "跨技能支援（{}→{}），接单后负载 {:.0}%",
+                    "跨技能支援（{}→{}），接单后负载 {:.0}%，成本 ¥{:.0}，ROI {:.0}%",
                     m.role.label(),
                     task.skill.label(),
-                    after * 100.0
+                    after * 100.0,
+                    cost,
+                    roi * 100.0
                 )
             };
             Suggestion {
                 member_id: m.id,
                 name: m.name.clone(),
                 score,
+                projected_cost: cost,
+                roi,
                 reason,
             }
         })
         .collect();
-    out.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    out.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     out
+}
+
+fn projected_cost(member: &Member, task: &Task) -> f64 {
+    let productivity = if member.role == task.skill { 1.0 } else { 0.65 };
+    task.estimate / productivity * member.hourly_cost
+}
+
+/// 汇总项目组合的预计人力成本、业务价值和 ROI。
+/// 已派工任务按实际负责人计算，未派工任务取候选人中的最低预计成本。
+pub fn economics(store: &Store) -> Economics {
+    let open = store.tasks.iter().filter(|task| task.status.is_open());
+    let mut cost = 0.0;
+    let mut value = 0.0;
+    for task in open {
+        let task_cost = task
+            .assignee
+            .and_then(|id| store.member(id))
+            .map(|member| projected_cost(member, task))
+            .or_else(|| {
+                store
+                    .members
+                    .iter()
+                    .map(|member| projected_cost(member, task))
+                    .reduce(f64::min)
+            })
+            .unwrap_or(0.0);
+        cost += task_cost;
+        value += task.business_value;
+    }
+    Economics {
+        projected_cost: cost,
+        business_value: value,
+        portfolio_roi: if cost > 0.0 {
+            (value - cost) / cost
+        } else {
+            0.0
+        },
+    }
 }
 
 /// 一键派工：把所有未派工的未完成任务分给当前最合适的人。
@@ -318,11 +401,7 @@ pub fn health(store: &Store, loads: &[Workload]) -> Health {
         1.0
     } else {
         let mean = loads.iter().map(|w| w.ratio).sum::<f64>() / loads.len() as f64;
-        let var = loads
-            .iter()
-            .map(|w| (w.ratio - mean).powi(2))
-            .sum::<f64>()
-            / loads.len() as f64;
+        let var = loads.iter().map(|w| (w.ratio - mean).powi(2)).sum::<f64>() / loads.len() as f64;
         (1.0 - var.sqrt().min(1.0)).max(0.0)
     };
 
@@ -352,6 +431,7 @@ mod tests {
             name: name.into(),
             role,
             weekly_hours: hours,
+            hourly_cost: 100.0,
         })
         .id
     }
@@ -362,6 +442,7 @@ mod tests {
             skill,
             priority: p,
             estimate: est,
+            business_value: 1000.0,
             due: due.into(),
             assignee: None,
         })
@@ -399,7 +480,14 @@ mod tests {
         let mut s = Store::default();
         造成员(&mut s, "前端", Role::Frontend, 40.0);
         let be = 造成员(&mut s, "后端", Role::Backend, 40.0);
-        let t = 造任务(&mut s, "接口开发", Role::Backend, Priority::P0, 8.0, "2026-12-01");
+        let t = 造任务(
+            &mut s,
+            "接口开发",
+            Role::Backend,
+            Priority::P0,
+            8.0,
+            "2026-12-01",
+        );
         let task = s.task(t).unwrap().clone();
         assert_eq!(suggest(&s, &task)[0].member_id, be);
     }
@@ -409,7 +497,14 @@ mod tests {
         let mut s = Store::default();
         let busy = 造成员(&mut s, "忙", Role::Backend, 20.0);
         let idle = 造成员(&mut s, "闲", Role::Backend, 20.0);
-        let occupied = 造任务(&mut s, "占用", Role::Backend, Priority::P1, 18.0, "2026-12-01");
+        let occupied = 造任务(
+            &mut s,
+            "占用",
+            Role::Backend,
+            Priority::P1,
+            18.0,
+            "2026-12-01",
+        );
         s.patch_task(
             occupied,
             TaskPatch {
@@ -417,7 +512,14 @@ mod tests {
                 ..Default::default()
             },
         );
-        let t = 造任务(&mut s, "新活", Role::Backend, Priority::P1, 4.0, "2026-12-01");
+        let t = 造任务(
+            &mut s,
+            "新活",
+            Role::Backend,
+            Priority::P1,
+            4.0,
+            "2026-12-01",
+        );
         let task = s.task(t).unwrap().clone();
         assert_eq!(suggest(&s, &task)[0].member_id, idle);
     }
@@ -464,5 +566,31 @@ mod tests {
     fn 空团队健康度不应当为零() {
         let s = Store::default();
         assert_eq!(health(&s, &[]).score, 100);
+    }
+
+    #[test]
+    fn 经济摘要应计算人力成本与_roi() {
+        let mut s = Store::default();
+        let member = 造成员(&mut s, "A", Role::Backend, 40.0);
+        let task = 造任务(
+            &mut s,
+            "收益任务",
+            Role::Backend,
+            Priority::P1,
+            10.0,
+            "2026-12-01",
+        );
+        s.patch_task(
+            task,
+            TaskPatch {
+                assignee: Some(Some(member)),
+                business_value: Some(2000.0),
+                ..Default::default()
+            },
+        );
+        let e = economics(&s);
+        assert_eq!(e.projected_cost, 1000.0);
+        assert_eq!(e.business_value, 2000.0);
+        assert_eq!(e.portfolio_roi, 1.0);
     }
 }

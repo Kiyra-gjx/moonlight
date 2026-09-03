@@ -16,10 +16,21 @@ use store::Store;
 fn main() {
     let (addr, data_path) = parse_args();
 
-    let store = Mutex::new(Store::load(&data_path));
+    let store = match Store::load(&data_path) {
+        Ok(store) => Mutex::new(store),
+        Err(e) => {
+            eprintln!("[moonlight] 数据加载失败: {e}");
+            eprintln!("[moonlight] 为避免覆盖原数据，服务未启动");
+            std::process::exit(1);
+        }
+    };
     {
         let s = store.lock().unwrap();
-        println!("[moonlight] 数据文件 {data_path}（成员 {} 人，任务 {} 条）", s.members.len(), s.tasks.len());
+        println!(
+            "[moonlight] 数据文件 {data_path}（成员 {} 人，任务 {} 条）",
+            s.members.len(),
+            s.tasks.len()
+        );
     }
 
     println!("[moonlight] 控制台已启动 -> http://{addr}");

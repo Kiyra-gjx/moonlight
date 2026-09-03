@@ -16,6 +16,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 input,select{font:inherit;color:var(--text);background:#0f141b;border:1px solid var(--line);
   border-radius:6px;padding:6px 8px;outline:none}
 input:focus,select:focus{border-color:var(--accent)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---------- 顶栏 ---------- */
 header{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);
@@ -77,6 +79,11 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
 .alert.warn{border-color:var(--warn)}
 .alert.info{border-color:var(--accent);color:var(--muted)}
 .empty{color:var(--muted);font-size:12px;padding:6px 0}
+.economics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.metric{background:#0f141b;border:1px solid var(--line);border-radius:7px;padding:8px}
+.metric b{display:block;color:var(--accent);font-size:16px}
+.metric span{font-size:11px;color:var(--muted)}
+.status-select{display:none}
 
 /* ---------- 表单与弹窗 ---------- */
 .form{display:grid;gap:7px;margin-top:10px}
@@ -89,6 +96,22 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1e2530;
   border:1px solid var(--line);border-radius:8px;padding:8px 16px;opacity:0;transition:.25s;pointer-events:none}
 #toast.show{opacity:1}
+
+@media (max-width:1100px){
+  main{grid-template-columns:230px 1fr}
+  main>section:last-child{grid-column:1/-1}
+}
+@media (max-width:760px){
+  header{position:static;flex-wrap:wrap}
+  header .health{order:3;width:100%}
+  main{display:block;padding:10px}
+  main>section{margin-bottom:10px}
+  .board{grid-template-columns:1fr}
+  .col{min-height:100px;margin-bottom:10px}
+  .card{cursor:default}
+  .status-select{display:block;width:100%;margin-top:7px}
+  .modal{width:min(92vw,380px)}
+}
 </style>
 </head>
 <body>
@@ -113,11 +136,13 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
     <h2>成员负载</h2>
     <div id="members"></div>
     <div class="form">
-      <input id="mName" placeholder="姓名">
+      <input id="mName" placeholder="姓名" aria-label="成员姓名">
       <div class="two">
-        <select id="mRole"></select>
-        <input id="mHours" type="number" min="1" step="1" value="30" title="周可用工时">
+        <label class="sr-only" for="mRole">成员角色</label><select id="mRole" aria-label="成员角色"></select>
+        <input id="mHours" type="number" min="1" step="1" value="30" title="周可用工时" aria-label="周可用工时">
       </div>
+      <label class="sr-only" for="mCost">小时成本</label>
+      <input id="mCost" type="number" min="1" step="10" value="100" placeholder="小时成本（元）" title="综合小时成本">
       <button class="btn" id="btnAddMember">添加成员</button>
     </div>
   </section>
@@ -131,6 +156,8 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
   <section class="panel">
     <h2>风险预警</h2>
     <div id="alerts"></div>
+    <h2 style="margin-top:18px">经济决策</h2>
+    <div id="economics"></div>
   </section>
 </main>
 
@@ -139,16 +166,18 @@ main{display:grid;grid-template-columns:260px 1fr 300px;gap:14px;padding:14px;al
   <div class="modal">
     <h3>新建任务</h3>
     <div class="form">
-      <input id="tTitle" placeholder="任务标题">
+      <input id="tTitle" placeholder="任务标题" aria-label="任务标题">
       <div class="two">
-        <select id="tSkill"></select>
-        <select id="tPriority"></select>
+        <select id="tSkill" aria-label="任务所需技能"></select>
+        <select id="tPriority" aria-label="任务优先级"></select>
       </div>
       <div class="two">
-        <input id="tEstimate" type="number" min="0.5" step="0.5" value="8" title="预估工时">
-        <input id="tDue" type="date">
+        <input id="tEstimate" type="number" min="0.5" step="0.5" value="8" title="预估工时" aria-label="预估工时">
+        <input id="tDue" type="date" aria-label="截止日期">
       </div>
-      <select id="tAssignee"></select>
+      <label class="sr-only" for="tValue">预期业务价值</label>
+      <input id="tValue" type="number" min="0" step="100" value="3000" placeholder="预期业务价值（元）">
+      <select id="tAssignee" aria-label="任务负责人"></select>
     </div>
     <div class="actions">
       <button class="btn" id="btnCancel">取消</button>
@@ -165,7 +194,7 @@ const ROLES = {frontend:'前端', backend:'后端', qa:'测试', product:'产品
 const PRIORITIES = {p0:'P0 紧急', p1:'P1 常规', p2:'P2 低'};
 const COLUMNS = [['todo','待办'],['doing','进行中'],['review','待评审'],['done','已完成']];
 
-let state = {members:[], tasks:[], workloads:[], alerts:[], health:{}, today:''};
+let state = {members:[], tasks:[], workloads:[], alerts:[], health:{}, economics:{}, today:''};
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -207,6 +236,7 @@ function render(){
   renderMembers();
   renderBoard();
   renderAlerts();
+  renderEconomics();
 }
 
 function renderHealth(){
@@ -230,11 +260,11 @@ function renderMembers(){
         <span class="name">${esc(w.name)}</span>
         <span class="tag">${ROLES[w.role]}</span>
         <span class="spacer" style="flex:1"></span>
-        <button class="del" data-del-member="${w.member_id}" title="移除成员">×</button>
+        <button class="del" data-del-member="${w.member_id}" title="移除成员" aria-label="移除成员 ${esc(w.name)}">×</button>
       </div>
       <div class="bar"><i style="width:${Math.min(w.ratio * 100, 100)}%;background:${loadColor(w.ratio)}"></i></div>
       <div class="num">${w.assigned.toFixed(1)}h / ${w.capacity.toFixed(0)}h ·
-        ${pct(w.ratio)} · ${w.open_tasks} 项${w.nearest_due ? ' · 最近 ' + w.nearest_due : ''}</div>
+        ${pct(w.ratio)} · ${w.open_tasks} 项 · ¥${money(memberById(w.member_id).hourly_cost)}/h${w.nearest_due ? ' · 最近 ' + w.nearest_due : ''}</div>
     </div>`).join('');
 }
 
@@ -266,12 +296,16 @@ function card(t){
       <span class="tag">${t.priority.toUpperCase()}</span>
       <span class="tag">${ROLES[t.skill]}</span>
       <span>${t.estimate}h</span>
+      <span>价值 ¥${money(t.business_value)}</span>
       <span class="${dueCls}">${dueTxt}</span>
     </div>
+    <select class="status-select" data-status-select="${t.id}" aria-label="修改任务状态">
+      ${COLUMNS.map(([key,label]) => `<option value="${key}"${t.status===key?' selected':''}>${label}</option>`).join('')}
+    </select>
     <div class="foot">
       <select data-assign="${t.id}">${options}</select>
-      <button class="btn" style="padding:2px 8px" data-suggest="${t.id}" title="推荐负责人">荐</button>
-      <button class="del" data-del-task="${t.id}" title="删除任务">×</button>
+      <button class="btn" style="padding:2px 8px" data-suggest="${t.id}" title="推荐负责人" aria-label="为 ${esc(t.title)} 推荐负责人">荐</button>
+      <button class="del" data-del-task="${t.id}" title="删除任务" aria-label="删除任务 ${esc(t.title)}">×</button>
     </div>
     <div class="hint" id="hint-${t.id}"></div>
   </div>`;
@@ -282,6 +316,18 @@ function renderAlerts(){
   if(!state.alerts.length){ box.innerHTML = '<div class="empty">暂无风险，节奏正常</div>'; return; }
   box.innerHTML = state.alerts.map(a => `<div class="alert ${a.level}">${esc(a.text)}</div>`).join('');
 }
+
+function renderEconomics(){
+  const e = state.economics;
+  $('economics').innerHTML = `<div class="economics">
+    <div class="metric"><b>¥${money(e.projected_cost)}</b><span>未完成人力成本</span></div>
+    <div class="metric"><b>¥${money(e.business_value)}</b><span>预期业务价值</span></div>
+    <div class="metric" style="grid-column:1/-1"><b>${pct(e.portfolio_roi)}</b><span>项目组合 ROI = (价值 - 成本) / 成本</span></div>
+  </div>`;
+}
+
+const money = v => Number(v || 0).toLocaleString('zh-CN', {maximumFractionDigits:0});
+const memberById = id => state.members.find(m => m.id === id) || {hourly_cost:0};
 
 /* ---------- 交互绑定 ---------- */
 function bindBoard(){
@@ -307,6 +353,9 @@ function bindBoard(){
   // 推荐负责人
   document.querySelectorAll('[data-suggest]').forEach(btn => {
     btn.addEventListener('click', () => showSuggestion(btn.dataset.suggest));
+  });
+  document.querySelectorAll('[data-status-select]').forEach(sel => {
+    sel.addEventListener('change', () => patch(sel.dataset.statusSelect, {status:sel.value}));
   });
   document.querySelectorAll('[data-del-task]').forEach(btn => {
     btn.addEventListener('click', () => remove('DELETE', '/api/tasks/' + btn.dataset.delTask));
@@ -376,6 +425,7 @@ $('btnCreate').onclick = async () => {
       skill: $('tSkill').value,
       priority: $('tPriority').value,
       estimate: Number($('tEstimate').value),
+      business_value: Number($('tValue').value),
       due: $('tDue').value,
       assignee: $('tAssignee').value ? Number($('tAssignee').value) : null
     });
@@ -391,7 +441,8 @@ $('btnAddMember').onclick = async () => {
   if(!name){ toast('请填写姓名'); return; }
   try{
     await api('POST', '/api/members', {
-      name, role: $('mRole').value, weekly_hours: Number($('mHours').value)
+      name, role: $('mRole').value, weekly_hours: Number($('mHours').value),
+      hourly_cost: Number($('mCost').value)
     });
     $('mName').value = '';
     await refresh();
