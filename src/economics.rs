@@ -1,10 +1,8 @@
-//! 经济决策层：把「谁来做、先做哪个、这周做多少」从经验判断变成可计算的经济问题。
+//! 经济决策层：成本核算、净现值、派工决策矩阵与投资组合。
 //!
-//! 三条主线：
-//! 1. 成本侧——多学科协作会带来工时膨胀与沟通开销，超出产能的部分按加班溢价计价；
-//! 2. 收益侧——业务收益随交付时间贴现，逾期再叠加延期损失，得到净现值 NPV；
-//! 3. 决策侧——单任务用决策矩阵选净现值最优方案，多任务用 WSJF 排序、
-//!    并在团队产能约束下做投资组合（资本预算）取舍。
+//! 成本计入跨学科工时膨胀、沟通开销与超产能加班溢价；
+//! 收益按交付日贴现并扣除延期损失后得到净现值；
+//! 派工取净现值最优方案，排期顺序取 WSJF，本周执行范围受团队产能约束。
 
 use std::collections::HashMap;
 
@@ -34,8 +32,7 @@ fn daily_rate() -> f64 {
     ANNUAL_DISCOUNT / 365.0
 }
 
-/// 跨学科工时膨胀系数：学科距离越远，同样的活儿要花越多工时。
-/// 这是「多学科环境」在模型中的实际代价，而不只是一个标签。
+/// 跨学科工时膨胀系数：学科距离越远，同样的活儿要花越多工时
 pub fn discipline_factor(worker: Role, need: Role) -> f64 {
     use Role::*;
     if worker == need {
@@ -276,7 +273,7 @@ pub fn decide(store: &Store, task: &Task) -> Decision {
         .min_by(|a, b| a.delay_days.cmp(&b.delay_days).then(asc(a.cost, b.cost)))
         .cloned();
 
-    // 无论推荐方案是否等于最低成本方案，都把「多花的钱能不能换回等值的时间」讲清楚
+    // 两种情形都要给出成本与工期的权衡结论
     let rationale = if !task.is_valued() {
         "任务尚未估算业务收益，只展示投入成本，不给出经济最优推荐；请先完成收益估值。".to_string()
     } else {
@@ -391,7 +388,7 @@ pub struct Summary {
 }
 
 /// 在团队总产能约束下，按单位工时净现值贪心选择本周要做的任务。
-/// 这是一个资本预算问题：预算是工时，回报是净现值。
+/// 以工时为预算、净现值为回报，属于资本预算问题。
 pub fn portfolio(store: &Store) -> Portfolio {
     let capacity: f64 = store.members.iter().map(|m| m.weekly_hours).sum();
     let ledger = Ledger::new(store);

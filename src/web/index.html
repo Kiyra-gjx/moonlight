@@ -5,135 +5,137 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Moonlight · 研发团队协作台</title>
 <style>
-/* ---------- 基础样式 ---------- */
+/* 基础 */
 :root{
-  --bg:#0e1116; --panel:#161b22; --line:#232a35; --text:#d7dee8; --muted:#7d8896;
-  --accent:#7c9cff; --danger:#ff6b6b; --warn:#f0b64c; --ok:#4ec98f; --gold:#e3c07b;
+  --bg:#f6f7f8; --panel:#fff; --line:#dfe3e8; --line2:#eceff2; --sunken:#fafbfc;
+  --text:#1f2328; --muted:#636c76;
+  --accent:#2f6feb; --danger:#c1262f; --warn:#8a6300; --ok:#1a7f37;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-input,select{font:inherit;color:var(--text);background:#0f141b;border:1px solid var(--line);
-  border-radius:6px;padding:6px 8px;outline:none;width:100%}
+input,select{font:inherit;color:var(--text);background:#fff;border:1px solid var(--line);
+  border-radius:4px;padding:6px 8px;outline:none;width:100%}
 input:focus,select:focus{border-color:var(--accent)}
 table{border-collapse:collapse;width:100%}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* ---------- 顶栏 ---------- */
-header{display:flex;align-items:center;gap:18px;padding:12px 20px;border-bottom:1px solid var(--line);
+/* 顶栏 */
+header{display:flex;align-items:center;gap:18px;padding:10px 18px;border-bottom:1px solid var(--line);
   background:var(--panel);position:sticky;top:0;z-index:10}
-.logo{font-size:17px;font-weight:600;letter-spacing:.5px}
-.logo span{color:var(--accent)}
+.logo{font-size:16px;font-weight:600}
 .sub{color:var(--muted);font-size:12px}
 .spacer{flex:1}
-.btn{border:1px solid var(--line);border-radius:6px;padding:6px 14px;transition:.15s;width:auto}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn.primary{background:var(--accent);color:#0e1116;border-color:var(--accent);font-weight:600}
-.btn.primary:hover{opacity:.85;color:#0e1116}
+.btn{border:1px solid var(--line);border-radius:4px;padding:5px 12px;background:#fff;width:auto}
+.btn:hover{background:var(--sunken);border-color:#c3cad1}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:#2760cf;border-color:#2760cf}
 
-.health{display:flex;align-items:center;gap:10px}
-.ring{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
-.health .meta{font-size:12px;color:var(--muted);max-width:200px}
+.health{display:flex;align-items:baseline;gap:8px}
+.health .score{font-size:20px;font-weight:600}
+.health .score.low{color:var(--danger)}
+.health .meta{font-size:12px;color:var(--muted);max-width:210px;line-height:1.4}
 /* 顶栏经济指标 */
 .kpi{display:flex;gap:16px;padding-left:18px;border-left:1px solid var(--line)}
 .kpi div{font-size:12px;color:var(--muted);white-space:nowrap}
-.kpi b{display:block;font-size:15px;color:var(--text)}
-.kpi b.pos{color:var(--ok)} .kpi b.neg{color:var(--danger)}
+.kpi b{display:block;font-size:15px;font-weight:600;color:var(--text)}
+.kpi b.neg{color:var(--danger)}
 
-/* ---------- 布局 ---------- */
+/* 布局 */
 main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;align-items:start}
 .side{display:grid;gap:12px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
-.panel h2{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:10px;letter-spacing:1px}
-.panel h2 em{font-style:normal;color:#4b5665;margin-left:6px;letter-spacing:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+.panel h2{font-size:13px;font-weight:600;margin-bottom:10px}
 
-/* ---------- 成员负载 ---------- */
-.member{padding:8px 0;border-bottom:1px dashed var(--line)}
+/* 成员负载 */
+.member{padding:8px 0;border-bottom:1px solid var(--line2)}
 .member:last-child{border-bottom:none}
 .member .row{display:flex;align-items:center;gap:6px}
 .member .name{font-weight:600}
-.tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px}
-.bar{height:6px;background:#0f141b;border-radius:3px;margin-top:6px;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:3px;transition:width .3s}
+.tag{font-size:11px;color:var(--muted);background:var(--sunken);border:1px solid var(--line);
+  border-radius:3px;padding:0 5px}
+.tag.p0{color:var(--danger);border-color:#e6b8ba;background:#fdf1f1}
+.bar{height:5px;background:var(--line2);border-radius:2px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%}
 .member .num{font-size:11px;color:var(--muted);margin-top:3px}
-.del{color:var(--muted);font-size:12px;width:auto}
+.del{color:#9aa4ad;font-size:12px;width:auto}
 .del:hover{color:var(--danger)}
 
-/* ---------- 看板 ---------- */
+/* 看板 */
 .board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:280px}
-.col.over{border-color:var(--accent);background:#1a2130}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;min-height:280px}
+.col.over{border-color:var(--accent);background:#f3f7fe}
 .col h3{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
-.card{background:#0f141b;border:1px solid var(--line);border-left-width:3px;border-radius:8px;
+.card{background:#fff;border:1px solid var(--line);border-radius:5px;
   padding:9px;margin-bottom:8px;cursor:grab}
-.card:hover{border-color:#3a4658}
-.card.p0{border-left-color:var(--danger)}
-.card.p1{border-left-color:var(--warn)}
-.card.p2{border-left-color:#48566b}
+.card:hover{border-color:#c3cad1}
 .card .title{font-weight:600;margin-bottom:5px;word-break:break-all}
 .card .meta{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:11px;color:var(--muted)}
-.card .econ{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;margin-top:5px;color:var(--gold)}
+.card .econ{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;margin-top:5px;color:var(--muted)}
 .card .foot{display:flex;gap:6px;align-items:center;margin-top:7px}
 .card select{flex:1;font-size:12px;padding:3px 5px}
 .status-select{display:none}
-.overdue{color:var(--danger);font-weight:600}
+.overdue{color:var(--danger)}
 .soon{color:var(--warn)}
 
-/* ---------- 经济决策面板 ---------- */
+/* 经济决策面板 */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.stat{background:#0f141b;border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.stat{background:var(--sunken);border:1px solid var(--line);border-radius:5px;padding:7px 9px}
 .stat span{display:block;font-size:11px;color:var(--muted)}
 .stat b{font-size:15px}
-.pos{color:var(--ok)} .neg{color:var(--danger)} .gold{color:var(--gold)}
-.pf{font-size:12px;padding:5px 0;border-bottom:1px dashed var(--line);display:flex;gap:6px;align-items:baseline}
+.pos{color:var(--ok)} .neg{color:var(--danger)}
+.pf{font-size:12px;padding:6px 0;border-bottom:1px solid var(--line2);display:flex;gap:8px;align-items:baseline}
 .pf:last-child{border-bottom:none}
-.pf .mark{flex:none;width:14px}
+.pf .mark{flex:none;font-size:11px;color:var(--muted);border:1px solid var(--line);
+  border-radius:3px;padding:0 4px;background:var(--sunken)}
+.pf.on .mark{color:var(--ok);border-color:#bcdfc6;background:#f2faf4}
 .pf .t{flex:1}
 .pf .r{color:var(--muted);font-size:11px}
-.pf.off{opacity:.55}
-.capbar{height:8px;background:#0f141b;border-radius:4px;overflow:hidden;margin:4px 0 10px}
+.pf.off .t{color:var(--muted)}
+.capbar{height:6px;background:var(--line2);border-radius:2px;overflow:hidden;margin:4px 0 10px}
 .capbar i{display:block;height:100%;background:var(--accent)}
 
-/* ---------- 预警 ---------- */
-.alert{border-left:3px solid var(--line);padding:5px 0 5px 8px;margin-bottom:7px;font-size:12.5px}
+/* 预警 */
+.alert{border-left:2px solid var(--line);padding:4px 0 4px 8px;margin-bottom:7px;font-size:12.5px}
 .alert.danger{border-color:var(--danger)}
 .alert.warn{border-color:var(--warn)}
-.alert.info{border-color:var(--accent);color:var(--muted)}
+.alert.info{border-color:#c3cad1;color:var(--muted)}
 .empty{color:var(--muted);font-size:12px;padding:6px 0}
 
-/* ---------- 表单与弹窗 ---------- */
+/* 表单与弹窗 */
 .form{display:grid;gap:7px;margin-top:10px}
 .form .two{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .form label{font-size:11px;color:var(--muted)}
-.mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:20;padding:20px}
+.mask{position:fixed;inset:0;background:rgba(31,35,40,.35);display:none;place-items:center;z-index:20;padding:20px}
 .mask.show{display:grid}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;width:400px;max-height:90vh;overflow:auto}
-.modal.wide{width:820px}
-.modal h3{margin-bottom:4px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;width:400px;
+  max-height:90vh;overflow:auto;box-shadow:0 8px 24px rgba(31,35,40,.12)}
+.modal.wide{width:860px}
+.modal h3{margin-bottom:4px;font-size:15px}
 .modal .desc{font-size:12px;color:var(--muted);margin-bottom:12px}
 .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 
 /* 决策矩阵 */
 .matrix{font-size:12.5px}
-.matrix th{text-align:right;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.matrix th{text-align:right;color:var(--muted);font-weight:600;padding:6px 8px;
+  border-bottom:1px solid var(--line);white-space:nowrap}
 .matrix th:first-child,.matrix td:first-child{text-align:left}
-.matrix td{text-align:right;padding:7px 8px;border-bottom:1px solid #1c222c;white-space:nowrap}
-.matrix tr.best{background:#16241d}
+.matrix td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line2);white-space:nowrap}
+.matrix tr.best{background:#f3f7fe}
 .matrix tr.cheap td:first-child::after{content:'成本最低';font-size:10px;color:var(--muted);
   border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-left:6px}
-.matrix tr.best td:first-child::before{content:'推荐';font-size:10px;color:#0e1116;background:var(--ok);
-  border-radius:3px;padding:0 4px;margin-right:6px}
-.matrix tbody tr:hover{background:#1a2130;cursor:pointer}
-.matrix tr.bad{opacity:.45}
+.matrix tr.best td:first-child::before{content:'推荐';font-size:10px;color:var(--accent);
+  border:1px solid #b6cbf5;border-radius:3px;padding:0 4px;margin-right:6px}
+.matrix tbody tr:hover{background:var(--sunken);cursor:pointer}
+.matrix tr.bad td{color:var(--muted)}
 .matrix tr.bad td:first-child::after{content:'产能不可行';font-size:10px;color:var(--danger);
-  border:1px solid var(--danger);border-radius:3px;padding:0 4px;margin-left:6px}
-.rationale{margin-top:12px;padding:10px;background:#0f141b;border:1px solid var(--line);
-  border-left:3px solid var(--gold);border-radius:6px;font-size:12.5px;line-height:1.7}
-.rationale b{color:var(--gold)}
+  border:1px solid #e6b8ba;border-radius:3px;padding:0 4px;margin-left:6px}
+.rationale{margin-top:12px;padding:10px;background:var(--sunken);border:1px solid var(--line);
+  border-radius:5px;font-size:12.5px;line-height:1.7}
 
-#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1e2530;
-  border:1px solid var(--line);border-radius:8px;padding:8px 16px;opacity:0;transition:.25s;pointer-events:none;z-index:30}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f2328;color:#fff;
+  border-radius:4px;padding:8px 16px;opacity:0;transition:.2s;pointer-events:none;z-index:30}
 #toast.show{opacity:1}
 
 @media (max-width:1400px){
@@ -166,11 +168,11 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
 
 <header>
   <div>
-    <div class="logo">Moon<span>light</span></div>
+    <div class="logo">Moonlight</div>
     <div class="sub">企业研发团队协作台</div>
   </div>
   <div class="health">
-    <div class="ring" id="ring">--</div>
+    <span class="score" id="score">--</span>
     <div class="meta" id="healthMeta"></div>
   </div>
   <div class="kpi" id="kpi"></div>
@@ -182,7 +184,7 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
 <main>
   <!-- 左：成员负载 -->
   <section class="panel">
-    <h2>成员负载<em>资源管理</em></h2>
+    <h2>成员负载</h2>
     <div id="members"></div>
     <div class="form">
       <input id="mName" placeholder="姓名" aria-label="成员姓名">
@@ -203,11 +205,11 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
   <!-- 右：经济决策 + 风险预警 -->
   <section class="side">
     <div class="panel">
-      <h2>经济决策<em>成本 · 净现值 · 投资组合</em></h2>
+      <h2>经济决策</h2>
       <div id="econ"></div>
     </div>
     <div class="panel">
-      <h2>风险预警<em>风险管理</em></h2>
+      <h2>风险预警</h2>
       <div id="alerts"></div>
     </div>
   </section>
@@ -217,7 +219,7 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
 <div class="mask" id="mask">
   <div class="modal">
     <h3>新建任务</h3>
-    <div class="desc">收益与截止日决定延期成本，是排期与派工的经济依据</div>
+    <div class="desc">收益与截止日用于计算延期成本</div>
     <div class="form">
       <input id="tTitle" placeholder="任务标题" aria-label="任务标题">
       <div class="two">
@@ -280,8 +282,7 @@ function money(v){
   if(a >= 10000) return sign + '¥' + (a / 10000).toFixed(1) + '万';
   return sign + '¥' + Math.round(a).toLocaleString('zh-CN');
 }
-const signed = v => (v >= 0 ? '' : '') + money(v);
-const cls = v => v >= 0 ? 'pos' : 'neg';
+const neg = v => v < 0 ? 'neg' : '';
 
 function toast(msg){
   const el = $('toast');
@@ -304,8 +305,8 @@ async function api(method, url, body){
 
 function loadColor(r){
   if(r > 1) return 'var(--danger)';
-  if(r > .85) return 'var(--warn)';
-  return 'var(--ok)';
+  if(r > .85) return '#c68b00';
+  return 'var(--accent)';
 }
 const daysLeft = due => Math.round((new Date(due) - new Date(state.today)) / 86400000);
 
@@ -322,18 +323,16 @@ function render(){
 
 function renderHeader(){
   const h = state.health, e = state.economics;
-  const color = h.score >= 85 ? 'var(--ok)' : h.score >= 65 ? 'var(--warn)' : 'var(--danger)';
-  const ring = $('ring');
-  ring.textContent = h.score;
-  ring.style.color = color;
-  ring.style.border = '3px solid ' + color;
-  $('healthMeta').innerHTML =
-    esc(h.comment) + '<br>按时 ' + pct(h.on_time) + ' · 均衡 ' + pct(h.balance) + ' · 派工 ' + pct(h.coverage);
+  const score = $('score');
+  score.textContent = h.score;
+  score.className = 'score' + (h.score < 65 ? ' low' : '');
+  $('healthMeta').innerHTML = '健康度 · ' + esc(h.comment) +
+    '<br>按时 ' + pct(h.on_time) + ' · 均衡 ' + pct(h.balance) + ' · 派工 ' + pct(h.coverage);
   $('kpi').innerHTML = `
     <div>在手投入<b>${money(e.total_cost)}</b></div>
     <div>预期收益<b>${money(e.total_value)}</b></div>
-    <div>净现值<b class="${cls(e.total_npv)}">${signed(e.total_npv)}</b></div>
-    <div>投资回报率<b class="${cls(e.roi)}">${pct(e.roi)}</b></div>`;
+    <div>净现值<b class="${neg(e.total_npv)}">${money(e.total_npv)}</b></div>
+    <div>投资回报率<b class="${neg(e.roi)}">${pct(e.roi)}</b></div>`;
 }
 
 function renderMembers(){
@@ -388,14 +387,14 @@ function card(t){
          <span>收益 ${money(t.value)}</span>
          <span>延期 ${money(delayCost)}/天</span>
          <span>WSJF ${wsjf.toFixed(0)}</span>
-         ${e ? `<span class="${cls(e.npv)}">NPV ${signed(e.npv)} · ROI ${pct(e.roi)}</span>` : ''}
+         ${e ? `<span class="${neg(e.npv)}">NPV ${money(e.npv)} · ROI ${pct(e.roi)}</span>` : ''}
        </div>`
     : `<div class="econ" style="color:var(--muted)">未估值，不参与经济决策</div>`;
 
-  return `<div class="card ${t.priority}" draggable="true" data-id="${t.id}">
+  return `<div class="card" draggable="true" data-id="${t.id}">
     <div class="title">${esc(t.title)}</div>
     <div class="meta">
-      <span class="tag">${t.priority.toUpperCase()}</span>
+      <span class="tag ${t.priority === 'p0' ? 'p0' : ''}">${t.priority.toUpperCase()}</span>
       <span class="tag">${ROLES[t.skill]}</span>
       <span>${t.estimate}h</span>
       <span class="${dueCls}">${esc(dueTxt)}</span>
@@ -418,7 +417,7 @@ function renderEconomics(){
   $('econ').innerHTML = `
     <div class="grid2">
       <div class="stat"><span>逾期沉没损失</span><b class="neg">${money(e.sunk_delay_loss)}</b></div>
-      <div class="stat"><span>跨学科协作溢价</span><b class="gold">${money(e.cross_overhead)}</b></div>
+      <div class="stat"><span>跨学科协作溢价</span><b>${money(e.cross_overhead)}</b></div>
     </div>
     <div style="font-size:12px;color:var(--muted)">
       本周投资组合 · 产能 ${p.used_hours.toFixed(1)}h / ${p.capacity_hours.toFixed(0)}h
@@ -426,13 +425,13 @@ function renderEconomics(){
     <div class="capbar"><i style="width:${Math.min(used * 100, 100)}%"></i></div>
     <div class="grid2">
       <div class="stat"><span>组合投入</span><b>${money(p.total_cost)}</b></div>
-      <div class="stat"><span>组合净现值</span><b class="${cls(p.total_npv)}">${signed(p.total_npv)}</b></div>
-      <div class="stat"><span>加权回报率</span><b class="${cls(p.weighted_roi)}">${pct(p.weighted_roi)}</b></div>
+      <div class="stat"><span>组合净现值</span><b class="${neg(p.total_npv)}">${money(p.total_npv)}</b></div>
+      <div class="stat"><span>加权回报率</span><b class="${neg(p.weighted_roi)}">${pct(p.weighted_roi)}</b></div>
       <div class="stat"><span>顺延 ${p.deferred_count} 项损失</span><b class="neg">${money(p.deferred_loss)}</b></div>
     </div>
     ${p.items.length ? p.items.map(i => `
-      <div class="pf ${i.selected ? '' : 'off'}">
-        <span class="mark">${i.selected ? '✓' : '⏸'}</span>
+      <div class="pf ${i.selected ? 'on' : 'off'}">
+        <span class="mark">${i.selected ? '本周' : '顺延'}</span>
         <span class="t">${esc(i.title)}
           <div class="r">${i.hours.toFixed(1)}h · ${money(i.cost)} · 密度 ${money(i.density)}/h · ${esc(i.reason)}</div>
         </span>
@@ -442,7 +441,7 @@ function renderEconomics(){
 
 function renderAlerts(){
   const box = $('alerts');
-  if(!state.alerts.length){ box.innerHTML = '<div class="empty">暂无风险，节奏正常</div>'; return; }
+  if(!state.alerts.length){ box.innerHTML = '<div class="empty">暂无风险</div>'; return; }
   box.innerHTML = state.alerts.map(a => `<div class="alert ${a.level}">${esc(a.text)}</div>`).join('');
 }
 
@@ -491,19 +490,19 @@ async function openDecision(id){
         <td>${p.overload_cost > 0 ? '<span class="neg">' + money(p.overload_cost) + '</span>' : '—'}</td>
         <td>${money(p.cost)}</td>
         <td>${p.finish_date}</td>
-        <td class="${p.delay_days > 0 ? 'neg' : 'pos'}">${p.delay_days > 0 ? '+' + p.delay_days + '天' : p.delay_days + '天'}</td>
+        <td class="${p.delay_days > 0 ? 'neg' : ''}">${p.delay_days > 0 ? '+' + p.delay_days + '天' : p.delay_days + '天'}</td>
         <td>${p.delay_loss > 0 ? '<span class="neg">' + money(p.delay_loss) + '</span>' : '—'}</td>
         <td class="${p.feasible ? '' : 'neg'}">${pct(p.load_after)}</td>
-        <td class="${cls(p.npv)}"><b>${signed(p.npv)}</b></td>
-        <td class="${cls(p.roi)}">${pct(p.roi)}</td>
+        <td class="${neg(p.npv)}"><b>${money(p.npv)}</b></td>
+        <td class="${neg(p.roi)}">${pct(p.roi)}</td>
         <td>${p.payback_days != null ? p.payback_days.toFixed(1) + '天' : '—'}</td>
       </tr>`).join('');
-    $('dWhy').innerHTML = '<b>决策依据 · </b>' + esc(d.rationale);
+    $('dWhy').innerHTML = '<b>决策依据</b>　' + esc(d.rationale);
     document.querySelectorAll('[data-pick]:not([data-pick=""])').forEach(tr => {
       tr.onclick = async () => {
         $('dmask').classList.remove('show');
         await patch(tr.dataset.task, {assignee: Number(tr.dataset.pick)});
-        toast('已按所选方案派工');
+        toast('已派工');
       };
     });
     $('dmask').classList.add('show');
@@ -529,7 +528,7 @@ function fillSelect(el, map){
 }
 
 function openModal(){
-  $('tAssignee').innerHTML = '<option value="">暂不派工（可用经济最优派工自动分配）</option>' +
+  $('tAssignee').innerHTML = '<option value="">暂不派工</option>' +
     state.members.map(m => `<option value="${m.id}">${esc(m.name)} · ${ROLES[m.role]}</option>`).join('');
   const d = new Date(state.today);
   d.setDate(d.getDate() + 7);
@@ -589,7 +588,7 @@ $('btnAuto').onclick = async () => {
   try{
     const r = await api('POST', '/api/auto-assign');
     await refresh();
-    toast(r.assigned ? `已按 WSJF 排序与净现值最优分配 ${r.assigned} 个任务` : '没有待派工的任务');
+    toast(r.assigned ? `已派工 ${r.assigned} 个任务` : '没有待派工的任务');
   }catch(e){ toast(e.message); }
 };
 

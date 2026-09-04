@@ -1,5 +1,5 @@
-//! 极简 HTTP/1.1 服务：只实现本工具需要的那部分（请求行、头、定长 body）。
-//! 内网小工具没必要引入异步运行时，一个连接一个线程足够。
+//! 极简 HTTP/1.1 服务：只解析请求行、头与定长 body。
+//! 一个连接一个线程，不引入异步运行时。
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};

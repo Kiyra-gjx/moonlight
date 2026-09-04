@@ -1,7 +1,5 @@
-//! 领域模型：研发成员与研发任务
-//!
-//! 每个任务同时带「工程量纲」（工时、截止日）与「经济量纲」（收益、延期损失），
-//! 前者支撑进度与资源管理，后者支撑经济决策。
+//! 领域模型：研发成员与研发任务。
+//! 任务同时带工时、截止日与收益、延期损失，分别供两层逻辑使用。
 
 use serde::{Deserialize, Serialize};
 
@@ -37,8 +35,7 @@ impl Role {
     }
 }
 
-/// 任务优先级，P0 最高。仅表达业务主观诉求，
-/// 真正的排期顺序由 WSJF 经济指标决定。
+/// 任务优先级，P0 最高。表达业务主观诉求，排期顺序另由 WSJF 决定。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Priority {
