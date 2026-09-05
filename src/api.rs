@@ -26,7 +26,30 @@ struct State<'a> {
 /// 内嵌前端页面，编译后单个二进制即可运行
 const INDEX_HTML: &str = include_str!("web/index.html");
 
+/// 写请求在副本中执行，落盘成功后再提交内存状态。
 pub fn route(store: &Mutex<Store>, req: Request) -> Response {
+    if matches!(req.method.as_str(), "POST" | "PATCH" | "DELETE") {
+        let mut current = store.lock().unwrap();
+        let staged = Mutex::new(current.clone());
+        let response = route_inner(&staged, req);
+        if response.status < 400 {
+            let candidate = staged.into_inner().unwrap();
+            if let Err(error) = candidate.save() {
+                eprintln!("[moonlight] {error}");
+                return Response::json(
+                    500,
+                    json!({"error":"保存失败，修改未生效，请检查数据目录后重试"}).to_string(),
+                );
+            }
+            *current = candidate;
+        }
+        response
+    } else {
+        route_inner(store, req)
+    }
+}
+
+fn route_inner(store: &Mutex<Store>, req: Request) -> Response {
     let seg = req.segments();
     let m = req.method.as_str();
 
@@ -214,6 +237,34 @@ mod tests {
             path: path.to_string(),
             body: body.to_string(),
         }
+    }
+
+    #[test]
+    fn 保存失败返回错误且不修改内存恢复后可以持久化() {
+        let dir =
+            std::env::temp_dir().join(format!("moonlight-transaction-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("state.json");
+        std::fs::write(&path, r#"{"members":[],"tasks":[]}"#).unwrap();
+        let store = Mutex::new(Store::load(&path).unwrap());
+        std::fs::remove_file(&path).unwrap();
+        std::fs::remove_dir(&dir).unwrap();
+        std::fs::write(&dir, "阻止创建目录").unwrap();
+        let body = r#"{"name":"A","role":"backend","weekly_hours":40,"hourly_cost":100}"#;
+        assert_eq!(
+            route(&store, request("POST", "/api/members", body)).status,
+            500
+        );
+        assert!(store.lock().unwrap().members.is_empty());
+        std::fs::remove_file(&dir).unwrap();
+        assert_eq!(
+            route(&store, request("POST", "/api/members", body)).status,
+            201
+        );
+        let saved = Store::load(&path).unwrap();
+        assert_eq!(saved.members.len(), 1);
+        assert_eq!(saved.members[0].id, 1);
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

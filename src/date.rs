@@ -67,6 +67,30 @@ pub fn from_today(offset: i64) -> String {
     format(today() + offset)
 }
 
+/// 从起始日之后计入工作日，跳过周六、周日；暂不包含法定节假日。
+pub fn add_workdays(start: i64, count: i64) -> i64 {
+    let mut day = start;
+    let mut remaining = count.max(0);
+    // 先对齐到首个工作日，再整周跳跃，避免大工时输入导致逐日长循环。
+    while remaining > 0 && (day + 3).rem_euclid(7) >= 5 {
+        day += 1;
+        if (day + 3).rem_euclid(7) < 5 {
+            remaining -= 1;
+        }
+    }
+    let weeks = remaining / 5;
+    day = day.saturating_add(weeks.saturating_mul(7));
+    remaining %= 5;
+    while remaining > 0 {
+        day += 1;
+        // 1970-01-01 为周四；0 表示周一。
+        if (day + 3).rem_euclid(7) < 5 {
+            remaining -= 1;
+        }
+    }
+    day
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -89,5 +113,17 @@ mod tests {
         assert!(parse("2026-02-29").is_none());
         assert!(parse("2026-02-31").is_none());
         assert!(parse("2024-02-29").is_some());
+    }
+
+    #[test]
+    fn 工作日交付应跳过周末() {
+        let friday = parse("2026-09-04").unwrap();
+        assert_eq!(format(add_workdays(friday, 1)), "2026-09-07");
+        assert_eq!(format(add_workdays(friday, 5)), "2026-09-11");
+        assert_eq!(add_workdays(friday, 0), friday);
+        assert_eq!(
+            format(add_workdays(parse("2026-09-05").unwrap(), 1)),
+            "2026-09-07"
+        );
     }
 }
