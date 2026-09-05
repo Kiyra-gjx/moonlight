@@ -1,0 +1,493 @@
+{
+  "members": [
+    {
+      "id": 1,
+      "name": "林洲",
+      "role": "backend",
+      "weekly_hours": 32,
+      "hourly_cost": 520
+    },
+    {
+      "id": 2,
+      "name": "周舟",
+      "role": "frontend",
+      "weekly_hours": 30,
+      "hourly_cost": 430
+    },
+    {
+      "id": 3,
+      "name": "陆晚",
+      "role": "qa",
+      "weekly_hours": 28,
+      "hourly_cost": 330
+    },
+    {
+      "id": 4,
+      "name": "何言",
+      "role": "backend",
+      "weekly_hours": 24,
+      "hourly_cost": 380
+    },
+    {
+      "id": 5,
+      "name": "苏念",
+      "role": "product",
+      "weekly_hours": 20,
+      "hourly_cost": 450
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "鉴权网关灰度放量",
+      "skill": "backend",
+      "priority": "p0",
+      "status": "doing",
+      "assignee": 1,
+      "estimate": 12,
+      "due": "2026-09-07",
+      "value": 45000,
+      "delay_cost_per_day": 1350
+    },
+    {
+      "id": 2,
+      "title": "工时看板前端重构",
+      "skill": "frontend",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 2,
+      "estimate": 16,
+      "due": "2026-09-11",
+      "value": 26000,
+      "delay_cost_per_day": 520
+    },
+    {
+      "id": 3,
+      "title": "发布流水线回归用例",
+      "skill": "qa",
+      "priority": "p1",
+      "status": "review",
+      "assignee": 3,
+      "estimate": 10,
+      "due": "2026-09-09",
+      "value": 20000,
+      "delay_cost_per_day": 400
+    },
+    {
+      "id": 4,
+      "title": "消息推送重复投递修复",
+      "skill": "backend",
+      "priority": "p0",
+      "status": "todo",
+      "assignee": 4,
+      "estimate": 8,
+      "due": "2026-09-06",
+      "value": 32000,
+      "delay_cost_per_day": 960
+    },
+    {
+      "id": 5,
+      "title": "季度需求池梳理",
+      "skill": "product",
+      "priority": "p2",
+      "status": "done",
+      "assignee": 5,
+      "estimate": 6,
+      "due": "2026-09-17",
+      "value": 9000,
+      "delay_cost_per_day": 90
+    },
+    {
+      "id": 6,
+      "title": "数据库慢查询治理",
+      "skill": "backend",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 4,
+      "estimate": 14,
+      "due": "2026-09-04",
+      "value": 28000,
+      "delay_cost_per_day": 560
+    },
+    {
+      "id": 7,
+      "title": "移动端埋点补齐",
+      "skill": "frontend",
+      "priority": "p2",
+      "status": "todo",
+      "assignee": 3,
+      "estimate": 9,
+      "due": "2026-09-14",
+      "value": 12000,
+      "delay_cost_per_day": 120
+    },
+    {
+      "id": 8,
+      "title": "灰度配置中心接入",
+      "skill": "ops",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 2,
+      "estimate": 10,
+      "due": "2026-09-13",
+      "value": 16000,
+      "delay_cost_per_day": 320
+    },
+    {
+      "id": 9,
+      "title": "用户增长看板取数",
+      "skill": "backend",
+      "priority": "p2",
+      "status": "todo",
+      "assignee": 1,
+      "estimate": 12,
+      "due": "2026-09-20",
+      "value": 10000,
+      "delay_cost_per_day": 100
+    },
+    {
+      "id": 10,
+      "title": "老旧接口文档整理",
+      "skill": "product",
+      "priority": "p2",
+      "status": "todo",
+      "assignee": null,
+      "estimate": 20,
+      "due": "2026-09-25",
+      "value": 2000,
+      "delay_cost_per_day": 20
+    },
+    {
+      "id": 11,
+      "title": "客服工单导出优化",
+      "skill": "frontend",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 5,
+      "estimate": 11,
+      "due": "2026-09-10",
+      "value": 15000,
+      "delay_cost_per_day": 300
+    },
+    {
+      "id": 12,
+      "title": "压测环境扩容",
+      "skill": "ops",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 1,
+      "estimate": 8,
+      "due": "2026-09-12",
+      "value": 11000,
+      "delay_cost_per_day": 220
+    },
+    {
+      "id": 13,
+      "title": "埋点数据质量校验",
+      "skill": "qa",
+      "priority": "p2",
+      "status": "todo",
+      "assignee": 3,
+      "estimate": 10,
+      "due": "2026-09-23",
+      "value": 7000,
+      "delay_cost_per_day": 70
+    }
+  ],
+  "workloads": [
+    {
+      "member_id": 1,
+      "name": "林洲",
+      "role": "backend",
+      "capacity": 32,
+      "assigned": 36.8,
+      "ratio": 1.15,
+      "open_tasks": 3,
+      "hourly_cost": 520,
+      "committed_cost": 19136,
+      "nearest_due": "2026-09-07"
+    },
+    {
+      "member_id": 2,
+      "name": "周舟",
+      "role": "frontend",
+      "capacity": 30,
+      "assigned": 31.5,
+      "ratio": 1.05,
+      "open_tasks": 2,
+      "hourly_cost": 430,
+      "committed_cost": 13545,
+      "nearest_due": "2026-09-11"
+    },
+    {
+      "member_id": 3,
+      "name": "陆晚",
+      "role": "qa",
+      "capacity": 28,
+      "assigned": 34.6,
+      "ratio": 1.2357142857142858,
+      "open_tasks": 3,
+      "hourly_cost": 330,
+      "committed_cost": 11418,
+      "nearest_due": "2026-09-09"
+    },
+    {
+      "member_id": 4,
+      "name": "何言",
+      "role": "backend",
+      "capacity": 24,
+      "assigned": 22,
+      "ratio": 0.9166666666666666,
+      "open_tasks": 2,
+      "hourly_cost": 380,
+      "committed_cost": 8360,
+      "nearest_due": "2026-09-04"
+    },
+    {
+      "member_id": 5,
+      "name": "苏念",
+      "role": "product",
+      "capacity": 20,
+      "assigned": 20.7,
+      "ratio": 1.035,
+      "open_tasks": 1,
+      "hourly_cost": 450,
+      "committed_cost": 9315,
+      "nearest_due": "2026-09-10"
+    }
+  ],
+  "alerts": [
+    {
+      "level": "danger",
+      "text": "《数据库慢查询治理》已逾期 1 天，累计延期损失 ¥560（何言）"
+    },
+    {
+      "level": "danger",
+      "text": "在手任务需 166h，团队周产能 134h，缺口 32h（约 1.2 人周），需增援、延期或按投资组合砍需求"
+    },
+    {
+      "level": "danger",
+      "text": "林洲 负载 115%（36.8h / 32.0h），超出部分按加班计价约 ¥3744"
+    },
+    {
+      "level": "danger",
+      "text": "周舟 负载 105%（31.5h / 30.0h），超出部分按加班计价约 ¥968"
+    },
+    {
+      "level": "danger",
+      "text": "陆晚 负载 124%（34.6h / 28.0h），超出部分按加班计价约 ¥3267"
+    },
+    {
+      "level": "danger",
+      "text": "苏念 负载 103%（20.7h / 20.0h），超出部分按加班计价约 ¥472"
+    },
+    {
+      "level": "warn",
+      "text": "《消息推送重复投递修复》还剩 1 天到期但尚未开工，延期日损失 ¥960（何言）"
+    },
+    {
+      "level": "warn",
+      "text": "何言 负载 92%，接近满载"
+    },
+    {
+      "level": "info",
+      "text": "《移动端埋点补齐》需要前端能力，由陆晚（测试）跨学科承接，成本上浮 ¥1848（+62%）"
+    },
+    {
+      "level": "info",
+      "text": "《灰度配置中心接入》需要运维能力，由周舟（前端）跨学科承接，成本上浮 ¥2365（+55%）"
+    },
+    {
+      "level": "info",
+      "text": "《客服工单导出优化》需要前端能力，由苏念（产品）跨学科承接，成本上浮 ¥4365（+88%）"
+    },
+    {
+      "level": "info",
+      "text": "《压测环境扩容》需要运维能力，由林洲（后端）跨学科承接，成本上浮 ¥2496（+60%）"
+    }
+  ],
+  "health": {
+    "score": 74,
+    "on_time": 0.9166666666666666,
+    "balance": 0.8916322294399985,
+    "coverage": 0.9166666666666666,
+    "comment": "存在成员过载，需减少在手任务或重新派工"
+  },
+  "economics": {
+    "total_cost": 95845,
+    "total_value": 224000,
+    "total_npv": 103324.95340684653,
+    "roi": 1.0780421869356411,
+    "sunk_delay_loss": 560,
+    "cross_overhead": 12337.801475532671,
+    "unvalued": 0,
+    "portfolio": {
+      "capacity_hours": 134,
+      "used_hours": 132.8,
+      "total_cost": 63168.5,
+      "total_npv": 123484.43911897586,
+      "weighted_roi": 1.9548420354919915,
+      "deferred_count": 2,
+      "deferred_loss": 1200,
+      "items": [
+        {
+          "task_id": 4,
+          "title": "消息推送重复投递修复",
+          "skill": "backend",
+          "hours": 8,
+          "cost": 3040,
+          "npv": 24096.949283711783,
+          "roi": 7.926628053852561,
+          "density": 3012.118660463973,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥3012/h，优先投入"
+        },
+        {
+          "task_id": 1,
+          "title": "鉴权网关灰度放量",
+          "skill": "backend",
+          "hours": 12,
+          "cost": 7487.999999999999,
+          "npv": 27929.067929314013,
+          "roi": 3.7298434734660812,
+          "density": 2327.4223274428346,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥2327/h，优先投入"
+        },
+        {
+          "task_id": 6,
+          "title": "数据库慢查询治理",
+          "skill": "backend",
+          "hours": 14,
+          "cost": 5320,
+          "npv": 18704.83062324781,
+          "roi": 3.5159456058736485,
+          "density": 1336.0593302319865,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥1336/h，优先投入"
+        },
+        {
+          "task_id": 3,
+          "title": "发布流水线回归用例",
+          "skill": "qa",
+          "hours": 10,
+          "cost": 4884,
+          "npv": 12650.365315755695,
+          "roi": 2.5901648885658672,
+          "density": 1265.0365315755694,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥1265/h，优先投入"
+        },
+        {
+          "task_id": 2,
+          "title": "工时看板前端重构",
+          "skill": "frontend",
+          "hours": 16,
+          "cost": 7202.5,
+          "npv": 17160.694803603652,
+          "roi": 2.3826025412847835,
+          "density": 1072.5434252252282,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥1073/h，优先投入"
+        },
+        {
+          "task_id": 8,
+          "title": "灰度配置中心接入",
+          "skill": "ops",
+          "hours": 15.5,
+          "cost": 6987.5,
+          "npv": 8645.235263756094,
+          "roi": 1.2372429715572228,
+          "density": 557.7571137907157,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥558/h，优先投入"
+        },
+        {
+          "task_id": 7,
+          "title": "移动端埋点补齐",
+          "skill": "frontend",
+          "hours": 14.6,
+          "cost": 6402,
+          "npv": 5438.619189453417,
+          "roi": 0.849518773735304,
+          "density": 372.50816366119295,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥373/h，优先投入"
+        },
+        {
+          "task_id": 13,
+          "title": "埋点数据质量校验",
+          "skill": "qa",
+          "hours": 10,
+          "cost": 4884,
+          "npv": 2093.027860514493,
+          "roi": 0.42854788298822544,
+          "density": 209.30278605144932,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥209/h，优先投入"
+        },
+        {
+          "task_id": 11,
+          "title": "客服工单导出优化",
+          "skill": "frontend",
+          "hours": 20.7,
+          "cost": 9472.5,
+          "npv": 4283.189309771338,
+          "roi": 0.452170948511094,
+          "density": 206.91735795996803,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥207/h，优先投入"
+        },
+        {
+          "task_id": 9,
+          "title": "用户增长看板取数",
+          "skill": "backend",
+          "hours": 12,
+          "cost": 7487.999999999999,
+          "npv": 2482.4595398475603,
+          "roi": 0.3315250453856251,
+          "density": 206.87162832063004,
+          "feasible": true,
+          "selected": true,
+          "reason": "单位工时净现值 ¥207/h，优先投入"
+        },
+        {
+          "task_id": 12,
+          "title": "压测环境扩容",
+          "skill": "ops",
+          "hours": 12.8,
+          "cost": 7903.999999999999,
+          "npv": 2623.5054938323165,
+          "roi": 0.3319212416285826,
+          "density": 204.9613667056497,
+          "feasible": true,
+          "selected": false,
+          "reason": "本周产能不足（还需 12.8h），顺延"
+        },
+        {
+          "task_id": 10,
+          "title": "老旧接口文档整理",
+          "skill": "product",
+          "hours": 20,
+          "cost": 24772.500000000004,
+          "npv": -22782.99120596165,
+          "roi": -0.9196888164683277,
+          "density": -1139.1495602980826,
+          "feasible": false,
+          "selected": false,
+          "reason": "当前无人能在可持续产能范围内承接，需调整排期或增援"
+        }
+      ]
+    }
+  },
+  "today": "2026-09-05"
+}
