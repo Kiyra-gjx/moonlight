@@ -1,0 +1,71 @@
+[
+  {
+    "name": "非法日期",
+    "method": "POST",
+    "path": "/api/tasks",
+    "request": {
+      "title": "日期验收",
+      "skill": "backend",
+      "priority": "p1",
+      "estimate": 4,
+      "value": 1000,
+      "due": "2026-02-31"
+    },
+    "status": 400,
+    "response": {
+      "error": "截止日期格式应为 YYYY-MM-DD"
+    }
+  },
+  {
+    "name": "空标题",
+    "method": "POST",
+    "path": "/api/tasks",
+    "request": {
+      "title": "  ",
+      "skill": "backend",
+      "priority": "p1",
+      "estimate": 4,
+      "value": 1000,
+      "due": "2026-09-30"
+    },
+    "status": 400,
+    "response": {
+      "error": "任务标题不能为空"
+    }
+  },
+  {
+    "name": "负工时",
+    "method": "POST",
+    "path": "/api/tasks",
+    "request": {
+      "title": "工时验收",
+      "skill": "backend",
+      "priority": "p1",
+      "estimate": -1,
+      "value": 1000,
+      "due": "2026-09-30"
+    },
+    "status": 400,
+    "response": {
+      "error": "预估工时必须是大于 0 的数字"
+    }
+  },
+  {
+    "name": "不存在负责人",
+    "method": "POST",
+    "path": "/api/tasks",
+    "request": {
+      "title": "负责人验收",
+      "skill": "backend",
+      "priority": "p1",
+      "estimate": 4,
+      "value": 1000,
+      "due": "2026-09-30",
+      "assignee": 9999
+    },
+    "status": 400,
+    "response": {
+      "error": "负责人不存在"
+    }
+  }
+]

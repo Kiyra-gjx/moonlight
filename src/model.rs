@@ -109,7 +109,7 @@ pub struct Task {
     #[serde(default, alias = "business_value")]
     pub value: f64,
     /// 每延期一天造成的损失，元/天
-    #[serde(default)]
+    #[serde(default = "missing_delay_cost")]
     pub delay_cost_per_day: f64,
 }
 
@@ -170,4 +170,9 @@ where
     D: serde::Deserializer<'de>,
 {
     Option::<u32>::deserialize(de).map(Some)
+}
+
+// 旧文件缺省字段仍按收益推导；显式零值表示没有延期损失。
+fn missing_delay_cost() -> f64 {
+    -1.0
 }

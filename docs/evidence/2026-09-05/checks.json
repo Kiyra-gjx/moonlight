@@ -1,0 +1,35 @@
+{
+  "platform": "macOS-26.5.1-arm64-arm-64bit",
+  "checks": [
+    {
+      "command": "rustc --version",
+      "exit_code": 0,
+      "output": "rustc 1.98.0 (88d9e12ae 2026-08-18)\n"
+    },
+    {
+      "command": "cargo --version",
+      "exit_code": 0,
+      "output": "cargo 1.98.0 (797e8a9bc 2026-08-05)\n"
+    },
+    {
+      "command": "cargo fmt --check",
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "command": "cargo clippy --offline --all-targets -- -D warnings",
+      "exit_code": 0,
+      "output": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s\n"
+    },
+    {
+      "command": "cargo test --offline",
+      "exit_code": 0,
+      "output": "   Compiling moonlight v0.1.0 (/Users/aotelei/大学课程/企业实践Rust/moonlight)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.95s\n     Running unittests src/main.rs (target/debug/deps/moonlight-b6e1c58ef343cf61)\n\nrunning 37 tests\ntest date::tests::非法日期应当返回_none ... ok\ntest economics::tests::wsjf_应当让高延期成本的小任务排前面 ... ok\ntest economics::tests::不可行方案应当排在可行方案之后 ... ok\ntest economics::tests::交付越晚净现值越低 ... ok\ntest date::tests::日期互转应当自洽 ... ok\ntest date::tests::工作日交付应跳过周末 ... ok\ntest api::tests::成员成本与工时应为正数 ... ok\ntest api::tests::更新任务应拒绝空标题和非法负责人 ... ok\ntest api::tests::创建任务应拒绝不存在的真实日期 ... ok\ntest economics::tests::全部方案超载时不应给出推荐人 ... ok\ntest economics::tests::净现值为负的任务不应当纳入组合 ... ok\ntest economics::tests::加班仅计新增任务的边际溢价 ... ok\ntest economics::tests::已派工任务的决策不应重复计算自身工时 ... ok\ntest economics::tests::延期成本高时应当接受更贵但更快的方案 ... ok\ntest economics::tests::投资组合应当受产能约束并按密度取舍 ... ok\ntest economics::tests::无延期成本时回收期应序列化为空值 ... ok\ntest economics::tests::显式零延期损失不应回退默认值 ... ok\ntest economics::tests::最优即最省时也应当解释为何不赶工 ... ok\ntest economics::tests::未估值任务应当被统计但不进组合 ... ok\ntest economics::tests::跨学科应当抬高工时与成本 ... ok\ntest insight::tests::空团队健康度不应当为零 ... ok\ntest economics::tests::组合应累计同一成员负载并重新计算成本 ... ok\ntest insight::tests::全员均匀过载也不能判为健康 ... ok\ntest insight::tests::自动派工不应把成员压过可持续上限 ... ok\ntest insight::tests::自动派工应保留未估值和负净现值任务 ... ok\ntest insight::tests::自动派工应当优先技能匹配的成员 ... ok\ntest insight::tests::负载统计不计入已完成任务 ... ok\ntest insight::tests::自动派工应当分散而非堆到一人 ... ok\ntest insight::tests::跨学科承接应当占用更多产能 ... ok\ntest insight::tests::逾期预警应当给出金额 ... ok\ntest insight::tests::需求超过产能时应当报出缺口 ... ok\ntest store::tests::删除成员应当退回其名下任务 ... ok\ntest store::tests::派工到不存在的成员应当被忽略 ... ok\ntest store::tests::补丁应当只修改出现的字段 ... ok\ntest store::tests::加载旧数据后应修复编号计数器 ... ok\ntest store::tests::损坏的数据文件不应被覆盖 ... ok\ntest api::tests::保存失败返回错误且不修改内存恢复后可以持久化 ... ok\n\ntest result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n"
+    },
+    {
+      "command": "cargo build --release --offline",
+      "exit_code": 0,
+      "output": "   Compiling moonlight v0.1.0 (/Users/aotelei/大学课程/企业实践Rust/moonlight)\n    Finished `release` profile [optimized] target(s) in 0.91s\n"
+    }
+  ]
+}

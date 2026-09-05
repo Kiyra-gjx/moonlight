@@ -11,7 +11,7 @@ use crate::date;
 use crate::model::*;
 
 /// 落盘的数据快照
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Store {
     #[serde(default)]
     pub members: Vec<Member>,
@@ -49,32 +49,29 @@ impl Store {
                     ..Default::default()
                 };
                 s.seed();
-                s.save();
+                s.save()?;
                 Ok(s)
             }
             Err(e) => Err(format!("无法读取 {}: {e}", path.display())),
         }
     }
 
-    /// 写回磁盘，失败时只告警不中断服务；未指定路径时为纯内存模式
-    pub fn save(&self) {
+    /// 原子写回磁盘；错误交由调用方处理。
+    pub fn save(&self) -> Result<(), String> {
         if self.path.as_os_str().is_empty() {
-            return;
+            return Ok(());
         }
-        if let Some(dir) = self.path.parent() {
-            let _ = fs::create_dir_all(dir);
+        let text = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
+        if let Some(dir) = self.path.parent().filter(|p| !p.as_os_str().is_empty()) {
+            fs::create_dir_all(dir).map_err(|e| e.to_string())?;
         }
-        match serde_json::to_string_pretty(self) {
-            Ok(text) => {
-                let tmp = self.path.with_extension("json.tmp");
-                let result = fs::write(&tmp, text).and_then(|_| fs::rename(&tmp, &self.path));
-                if let Err(e) = result {
-                    let _ = fs::remove_file(&tmp);
-                    eprintln!("[moonlight] 数据落盘失败: {e}");
-                }
-            }
-            Err(e) => eprintln!("[moonlight] 数据序列化失败: {e}"),
-        }
+        let tmp = self.path.with_extension("json.tmp");
+        fs::write(&tmp, text)
+            .and_then(|_| fs::rename(&tmp, &self.path))
+            .map_err(|e| {
+                let _ = fs::remove_file(&tmp);
+                format!("数据保存失败: {e}")
+            })
     }
 
     pub fn member(&self, id: u32) -> Option<&Member> {
@@ -95,7 +92,6 @@ impl Store {
             hourly_cost: input.hourly_cost.max(1.0),
         };
         self.members.push(m.clone());
-        self.save();
         m
     }
 
@@ -109,7 +105,6 @@ impl Store {
         for t in self.tasks.iter_mut().filter(|t| t.assignee == Some(id)) {
             t.assignee = None;
         }
-        self.save();
         true
     }
 
@@ -129,11 +124,9 @@ impl Store {
             // 未显式登记延期损失时，按收益与优先级推导一个基准值
             delay_cost_per_day: input
                 .delay_cost_per_day
-                .filter(|v| *v > 0.0)
                 .unwrap_or_else(|| crate::economics::derive_delay_cost(value, input.priority)),
         };
         self.tasks.push(t.clone());
-        self.save();
         t
     }
 
@@ -174,7 +167,6 @@ impl Store {
             }
         }
         let updated = t.clone();
-        self.save();
         Some(updated)
     }
 
@@ -184,7 +176,6 @@ impl Store {
         if self.tasks.len() == before {
             return false;
         }
-        self.save();
         true
     }
 

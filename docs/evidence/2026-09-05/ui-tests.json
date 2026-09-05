@@ -1,0 +1,10 @@
+{
+  "browser": "152.0.7977.76",
+  "viewport": "1920x1080; mobile 390x844",
+  "autoAssign": true,
+  "dragPersisted": true,
+  "mobileStatusPersisted": true,
+  "mobileNoHorizontalOverflow": true,
+  "invalidRequestsDidNotCreateTasks": true,
+  "pageErrors": []
+}

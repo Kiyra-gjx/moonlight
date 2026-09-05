@@ -108,7 +108,7 @@ pub fn auto_assign(store: &mut Store) -> Vec<(u32, u32)> {
     let mut pending: Vec<Task> = store
         .tasks
         .iter()
-        .filter(|t| t.assignee.is_none() && t.status.is_open())
+        .filter(|t| t.assignee.is_none() && t.status.is_open() && t.is_valued())
         .cloned()
         .collect();
     pending.sort_by(|a, b| {
@@ -127,7 +127,7 @@ pub fn auto_assign(store: &mut Store) -> Vec<(u32, u32)> {
         // 只在可持续产能范围内派工；全员都排不下时留空，交由增援或砍需求处理
         let Some(best) = economics::plans(store, &task, &ledger)
             .into_iter()
-            .find(|p| p.feasible)
+            .find(|p| p.feasible && p.npv > 0.0)
         else {
             continue;
         };
@@ -137,9 +137,6 @@ pub fn auto_assign(store: &mut Store) -> Vec<(u32, u32)> {
             t.assignee = Some(best.member_id);
         }
         result.push((task.id, best.member_id));
-    }
-    if !result.is_empty() {
-        store.save();
     }
     result
 }
@@ -342,12 +339,22 @@ pub fn health(store: &Store, loads: &[Workload]) -> Health {
         (1.0 - var.sqrt().min(1.0)).max(0.0)
     };
 
-    let score = ((0.40 * on_time + 0.35 * balance + 0.25 * coverage) * 100.0).round() as u32;
-    let comment = match score {
-        90..=100 => "节奏稳健，保持当前排期",
-        75..=89 => "整体可控，关注个别预警",
-        60..=74 => "存在明显瓶颈，建议重新派工",
-        _ => "风险偏高，需要立即介入调整",
+    let mut score = ((0.40 * on_time + 0.35 * balance + 0.25 * coverage) * 100.0).round() as u32;
+    // 均衡并不等于健康：不能让所有人一起过载反而获得高分。
+    let max_load = loads.iter().map(|w| w.ratio).fold(0.0, f64::max);
+    let comment = if max_load > economics::MAX_LOAD {
+        score = score.min(59);
+        "已超过可持续产能上限，需要立即调整排期或增援"
+    } else if max_load > OVERLOAD {
+        score = score.min(74);
+        "存在成员过载，需减少在手任务或重新派工"
+    } else {
+        match score {
+            90..=100 => "节奏稳健，保持当前排期",
+            75..=89 => "整体可控，关注个别预警",
+            60..=74 => "存在明显瓶颈，建议重新派工",
+            _ => "风险偏高，需要立即介入调整",
+        }
     };
 
     Health {
@@ -546,5 +553,54 @@ mod tests {
     fn 空团队健康度不应当为零() {
         let s = Store::default();
         assert_eq!(health(&s, &[]).score, 100);
+    }
+
+    #[test]
+    fn 全员均匀过载也不能判为健康() {
+        for (hours, cap) in [(12.0, 74), (14.0, 59)] {
+            let mut s = Store::default();
+            for name in ["甲", "乙"] {
+                let id = 造成员(&mut s, name, Role::Backend, 10.0);
+                let t = 造任务(
+                    &mut s,
+                    "在手任务",
+                    Role::Backend,
+                    Priority::P1,
+                    hours,
+                    &date::from_today(30),
+                );
+                s.patch_task(
+                    t,
+                    TaskPatch {
+                        assignee: Some(Some(id)),
+                        ..Default::default()
+                    },
+                );
+            }
+            let h = health(&s, &workloads(&s));
+            assert_eq!(h.balance, 1.0);
+            assert_eq!(h.score, cap);
+            assert!(!h.comment.contains("稳健"));
+        }
+    }
+
+    #[test]
+    fn 自动派工应保留未估值和负净现值任务() {
+        let mut s = Store::default();
+        造成员(&mut s, "甲", Role::Backend, 40.0);
+        for value in [0.0, 1.0] {
+            s.add_task(NewTask {
+                title: "待评估".into(),
+                skill: Role::Backend,
+                priority: Priority::P1,
+                estimate: 8.0,
+                due: date::from_today(30),
+                assignee: None,
+                value,
+                delay_cost_per_day: None,
+            });
+        }
+        assert!(auto_assign(&mut s).is_empty());
+        assert!(s.tasks.iter().all(|t| t.assignee.is_none()));
     }
 }

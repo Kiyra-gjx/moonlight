@@ -1,0 +1,2 @@
+[moonlight] 数据文件 /private/tmp/moonlight-report-V8TesZ/demo.json（成员 5 人，任务 13 条）
+[moonlight] 控制台已启动 -> http://127.0.0.1:18089

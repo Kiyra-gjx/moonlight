@@ -111,7 +111,8 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
 .mask.show{display:grid}
 .modal{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;width:400px;
   max-height:90vh;overflow:auto;box-shadow:0 8px 24px rgba(31,35,40,.12)}
-.modal.wide{width:860px}
+.modal.wide{width:min(1380px,96vw)}
+.matrix-scroll{max-width:100%;overflow-x:auto}
 .modal h3{margin-bottom:4px;font-size:15px}
 .modal .desc{font-size:12px;color:var(--muted);margin-bottom:12px}
 .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
@@ -177,7 +178,7 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
   </div>
   <div class="kpi" id="kpi"></div>
   <div class="spacer"></div>
-  <button class="btn" id="btnAuto">按经济最优派工</button>
+  <button class="btn" id="btnAuto">按模型推荐派工</button>
   <button class="btn primary" id="btnNewTask">新建任务</button>
 </header>
 
@@ -223,15 +224,15 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
     <div class="form">
       <input id="tTitle" placeholder="任务标题" aria-label="任务标题">
       <div class="two">
-        <div><label>所需学科</label><select id="tSkill"></select></div>
-        <div><label>优先级</label><select id="tPriority"></select></div>
+        <div><label for="tSkill">所需学科</label><select id="tSkill"></select></div>
+        <div><label for="tPriority">优先级</label><select id="tPriority"></select></div>
       </div>
       <div class="two">
-        <div><label>预估工时</label><input id="tEstimate" type="number" min="0.5" step="0.5" value="8"></div>
-        <div><label>截止日期</label><input id="tDue" type="date"></div>
+        <div><label for="tEstimate">预估工时</label><input id="tEstimate" type="number" min="0.5" step="0.5" value="8"></div>
+        <div><label for="tDue">截止日期</label><input id="tDue" type="date"></div>
       </div>
-      <div><label>预期业务收益（元）</label><input id="tValue" type="number" min="0" step="1000" value="50000"></div>
-      <div><label>负责人</label><select id="tAssignee"></select></div>
+      <div><label for="tValue">预期业务收益（元）</label><input id="tValue" type="number" min="0" step="1000" value="50000"></div>
+      <div><label for="tAssignee">负责人</label><select id="tAssignee"></select></div>
     </div>
     <div class="actions">
       <button class="btn" id="btnCancel">取消</button>
@@ -245,13 +246,13 @@ main{display:grid;grid-template-columns:250px 1fr 340px;gap:12px;padding:12px;al
   <div class="modal wide">
     <h3 id="dTitle"></h3>
     <div class="desc" id="dDesc"></div>
-    <table class="matrix">
+    <div class="matrix-scroll"><table class="matrix">
       <thead><tr>
         <th>承接方案</th><th>投入工时</th><th>人力成本</th><th>加班溢价</th><th>总投入</th>
-        <th>预计完成</th><th>延期</th><th>延期损失</th><th>产能占用</th><th>净现值</th><th>ROI</th><th>回收期</th>
+        <th>预计完成</th><th>延期</th><th>延期损失</th><th>产能占用</th><th>净现值</th><th>ROI</th><th title="总投入 ÷ 延期日损失，不代表现金流回收期">损失等值天数</th>
       </tr></thead>
       <tbody id="dBody"></tbody>
-    </table>
+    </table></div>
     <div class="rationale" id="dWhy"></div>
     <div class="actions">
       <button class="btn" id="btnDClose">关闭</button>
@@ -480,7 +481,7 @@ async function openDecision(id){
     const d = await api('GET', `/api/tasks/${id}/decision`);
     $('dTitle').textContent = '派工决策 · ' + d.title;
     $('dDesc').innerHTML = `预期收益 ${money(d.value)} · WSJF ${d.wsjf.toFixed(0)} ` +
-      `· 贴现率 12%/年 · 产能上限 130% · 点击任意一行即可按该方案派工`;
+      `· 贴现率 12%/年 · 产能上限 130% · 仅可点击产能可行的方案派工`;
     $('dBody').innerHTML = d.plans.map(p => `
       <tr class="${p.member_id === d.recommended ? 'best' : ''} ${p.feasible ? (p.member_id === d.cheapest ? 'cheap' : '') : 'bad'}"
           data-pick="${p.feasible ? p.member_id : ''}" data-task="${d.task_id}" aria-disabled="${!p.feasible}" title="${esc(p.note)}">
@@ -588,7 +589,7 @@ $('btnAuto').onclick = async () => {
   try{
     const r = await api('POST', '/api/auto-assign');
     await refresh();
-    toast(r.assigned ? `已派工 ${r.assigned} 个任务` : '没有待派工的任务');
+    toast(r.assigned ? `已派工 ${r.assigned} 个任务` : '没有可自动派工的任务，请检查收益估值与产能');
   }catch(e){ toast(e.message); }
 };
 

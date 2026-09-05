@@ -1,0 +1,199 @@
+{
+  "members": [
+    {
+      "id": 1,
+      "name": "林洲",
+      "role": "backend",
+      "weekly_hours": 32.0,
+      "hourly_cost": 520.0
+    },
+    {
+      "id": 2,
+      "name": "周舟",
+      "role": "frontend",
+      "weekly_hours": 30.0,
+      "hourly_cost": 430.0
+    },
+    {
+      "id": 3,
+      "name": "陆晚",
+      "role": "qa",
+      "weekly_hours": 28.0,
+      "hourly_cost": 330.0
+    },
+    {
+      "id": 4,
+      "name": "何言",
+      "role": "backend",
+      "weekly_hours": 24.0,
+      "hourly_cost": 380.0
+    },
+    {
+      "id": 5,
+      "name": "苏念",
+      "role": "product",
+      "weekly_hours": 20.0,
+      "hourly_cost": 450.0
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "鉴权网关灰度放量",
+      "skill": "backend",
+      "priority": "p0",
+      "status": "doing",
+      "assignee": 1,
+      "estimate": 12.0,
+      "due": "2026-09-07",
+      "value": 45000.0,
+      "delay_cost_per_day": 1350.0
+    },
+    {
+      "id": 2,
+      "title": "工时看板前端重构",
+      "skill": "frontend",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 2,
+      "estimate": 16.0,
+      "due": "2026-09-11",
+      "value": 26000.0,
+      "delay_cost_per_day": 520.0
+    },
+    {
+      "id": 3,
+      "title": "发布流水线回归用例",
+      "skill": "qa",
+      "priority": "p1",
+      "status": "review",
+      "assignee": 3,
+      "estimate": 10.0,
+      "due": "2026-09-09",
+      "value": 20000.0,
+      "delay_cost_per_day": 400.0
+    },
+    {
+      "id": 4,
+      "title": "消息推送重复投递修复",
+      "skill": "backend",
+      "priority": "p0",
+      "status": "todo",
+      "assignee": 4,
+      "estimate": 8.0,
+      "due": "2026-09-06",
+      "value": 32000.0,
+      "delay_cost_per_day": 960.0
+    },
+    {
+      "id": 5,
+      "title": "季度需求池梳理",
+      "skill": "product",
+      "priority": "p2",
+      "status": "done",
+      "assignee": 5,
+      "estimate": 6.0,
+      "due": "2026-09-17",
+      "value": 9000.0,
+      "delay_cost_per_day": 90.0
+    },
+    {
+      "id": 6,
+      "title": "数据库慢查询治理",
+      "skill": "backend",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 4,
+      "estimate": 14.0,
+      "due": "2026-09-04",
+      "value": 28000.0,
+      "delay_cost_per_day": 560.0
+    },
+    {
+      "id": 7,
+      "title": "移动端埋点补齐",
+      "skill": "frontend",
+      "priority": "p2",
+      "status": "todo",
+      "assignee": 3,
+      "estimate": 9.0,
+      "due": "2026-09-14",
+      "value": 12000.0,
+      "delay_cost_per_day": 120.0
+    },
+    {
+      "id": 8,
+      "title": "灰度配置中心接入",
+      "skill": "ops",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 2,
+      "estimate": 10.0,
+      "due": "2026-09-13",
+      "value": 16000.0,
+      "delay_cost_per_day": 320.0
+    },
+    {
+      "id": 9,
+      "title": "用户增长看板取数",
+      "skill": "backend",
+      "priority": "p2",
+      "status": "todo",
+      "assignee": 1,
+      "estimate": 12.0,
+      "due": "2026-09-20",
+      "value": 10000.0,
+      "delay_cost_per_day": 100.0
+    },
+    {
+      "id": 10,
+      "title": "老旧接口文档整理",
+      "skill": "product",
+      "priority": "p2",
+      "status": "todo",
+      "assignee": null,
+      "estimate": 20.0,
+      "due": "2026-09-25",
+      "value": 2000.0,
+      "delay_cost_per_day": 20.0
+    },
+    {
+      "id": 11,
+      "title": "客服工单导出优化",
+      "skill": "frontend",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 5,
+      "estimate": 11.0,
+      "due": "2026-09-10",
+      "value": 15000.0,
+      "delay_cost_per_day": 300.0
+    },
+    {
+      "id": 12,
+      "title": "压测环境扩容",
+      "skill": "ops",
+      "priority": "p1",
+      "status": "todo",
+      "assignee": 1,
+      "estimate": 8.0,
+      "due": "2026-09-12",
+      "value": 11000.0,
+      "delay_cost_per_day": 220.0
+    },
+    {
+      "id": 13,
+      "title": "埋点数据质量校验",
+      "skill": "qa",
+      "priority": "p2",
+      "status": "todo",
+      "assignee": 3,
+      "estimate": 10.0,
+      "due": "2026-09-23",
+      "value": 7000.0,
+      "delay_cost_per_day": 70.0
+    }
+  ],
+  "next_member_id": 5,
+  "next_task_id": 13
+}
